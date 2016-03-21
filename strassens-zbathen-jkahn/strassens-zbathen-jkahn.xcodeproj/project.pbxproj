@@ -7,7 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		58B62A301CA0249E00EDF0E6 /* main.cp in Sources */ = {isa = PBXBuildFile; fileRef = 58B62A2D1CA0249E00EDF0E6 /* main.cp */; };
+		58B62A301CA0249E00EDF0E6 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 58B62A2D1CA0249E00EDF0E6 /* main.cpp */; };
+		58B62A321CA02D8E00EDF0E6 /* README.md in Sources */ = {isa = PBXBuildFile; fileRef = 58B62A311CA02D8E00EDF0E6 /* README.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -24,9 +25,10 @@
 
 /* Begin PBXFileReference section */
 		58B62A231CA0243B00EDF0E6 /* strassens-zbathen-jkahn */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "strassens-zbathen-jkahn"; sourceTree = BUILT_PRODUCTS_DIR; };
-		58B62A2D1CA0249E00EDF0E6 /* main.cp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cp; sourceTree = "<group>"; };
+		58B62A2D1CA0249E00EDF0E6 /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		58B62A2E1CA0249E00EDF0E6 /* test2d.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = test2d.txt; sourceTree = "<group>"; };
 		58B62A2F1CA0249E00EDF0E6 /* test4d.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = test4d.txt; sourceTree = "<group>"; };
+		58B62A311CA02D8E00EDF0E6 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -59,7 +61,8 @@
 		58B62A251CA0243B00EDF0E6 /* strassens-zbathen-jkahn */ = {
 			isa = PBXGroup;
 			children = (
-				58B62A2D1CA0249E00EDF0E6 /* main.cp */,
+				58B62A311CA02D8E00EDF0E6 /* README.md */,
+				58B62A2D1CA0249E00EDF0E6 /* main.cpp */,
 				58B62A2E1CA0249E00EDF0E6 /* test2d.txt */,
 				58B62A2F1CA0249E00EDF0E6 /* test4d.txt */,
 			);
@@ -122,7 +125,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				58B62A301CA0249E00EDF0E6 /* main.cp in Sources */,
+				58B62A321CA02D8E00EDF0E6 /* README.md in Sources */,
+				58B62A301CA0249E00EDF0E6 /* main.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

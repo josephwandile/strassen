@@ -7,8 +7,8 @@ using namespace std;
 
 const int CUTOFF = 1;
 
-// builds matrices to be mutiplied from .txt file
-void build_matrices(string infile, int dimension, int * mat1, int * mat2) {
+// Builds matrices to be mutiplied from .txt file
+void build_matrices(string infile, int dimension, int* mat1, int* mat2) {
 	ifstream inputfile(infile);
 
 	if (inputfile.is_open()) {
@@ -22,7 +22,7 @@ void build_matrices(string infile, int dimension, int * mat1, int * mat2) {
 					element = "";
 				}
 				else {
-					cout << "file does not contain enough data";
+					cout << "File does not contain enough data";
 					exit(EXIT_FAILURE);
 				}
 			}
@@ -36,14 +36,14 @@ void build_matrices(string infile, int dimension, int * mat1, int * mat2) {
 					element = "";
 				}
 				else {
-					cout << "file does not contain enough data";
+					cout << "File does not contain enough data" << endl;
 					exit(EXIT_FAILURE);
 				}
 			}
 		}
 	}
 	else {
-		cout << "Unable to open file";
+        cout << "Unable to open file" << endl;
 		exit(EXIT_FAILURE);
 	}
 }
@@ -247,7 +247,6 @@ int main(int argc, char* argv[])
 	print_matrix(mat2, dimension);
 
 	print_matrix(tradmult(mat1, mat2, dimension), dimension);
-
 	print_matrix(strassenmult(mat1, mat2, dimension), dimension);
 
 }
