@@ -4,7 +4,6 @@
 #include <vector>
 
 using namespace std;
-
 const int CUTOFF = 1;
 
 // Builds matrices to be mutiplied from .txt file
