@@ -46,7 +46,8 @@
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
-      useCustomWorkingDirectory = "NO"
+      useCustomWorkingDirectory = "YES"
+      customWorkingDirectory = "/Users/josephkahn/Desktop/School/Academic/Spring 2016/CS 124/Homeworks 2016/strassen/strassens-zbathen-jkahn/strassens-zbathen-jkahn"
       ignoresPersistentStateOnLaunch = "NO"
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
@@ -64,6 +65,10 @@
       <CommandLineArguments>
          <CommandLineArgument
             argument = "0 2 test2d.txt"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "0 2 test.txt"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument

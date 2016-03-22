@@ -6,56 +6,101 @@
 using namespace std;
 const int CUTOFF = 1;
 
-// Builds matrices to be mutiplied from .txt file
-void build_matrices(string infile, int dimension, int* mat1, int* mat2) {
-	ifstream inputfile(infile);
+/*
+ 
+ Definition of Matrix as well as utility functions for generating, populating, and printing them.
+ 
+ */
 
-	if (inputfile.is_open()) {
-		string element = "";
+// Basic Matrix struct
+typedef struct Matrix {
+    int dimension;
+    vector<vector<int>> entries;
+} Matrix;
 
-		// build matrix 1
-		for (int col = 0; col < dimension; col++) {
-			for (int row = 0; row < dimension; row++) {
-				if (getline(inputfile, element)) {
-					mat1[col*dimension + row] = stoi(element);
-					element = "";
-				}
-				else {
-					cout << "File does not contain enough data" << endl;
-					exit(EXIT_FAILURE);
-				}
-			}
+// Memory allocation
+Matrix* instantiate_matrix(int dimension) {
+    
+    Matrix* matrix = new Matrix();
+    matrix->dimension = dimension;
+    vector<vector<int>> entries(dimension, vector<int>(dimension));
+    matrix->entries = entries;
+    
+    return matrix;
+}
+
+// Does the actual IO work for populating matrices
+void populate_matrix(Matrix* matrix, string infile, int position, int dimension) {
+    
+    ifstream inputfile(infile);
+    string element = "";
+    
+    if (inputfile.is_open()) {
+        
+        // Skips to the appropriate line
+        for (int i = 0; i < position; i++){
+            getline(inputfile, element);
+        }
+        
+        for (int row = 0; row < dimension; row++) {
+            for (int col = 0; col < dimension; col++) {
+                if (getline(inputfile, element)) {
+                    matrix->entries[row][col] = stoi(element);
+                    element = "";
+                }
+                else {
+                    cout << "File does not contain enough data" << endl;
+                    exit(EXIT_FAILURE);
+                }
+            }
+        }
+    }
+}
+
+// Instantiates and populates a matrix from a specific point in the input file
+Matrix* build_matrix(string infile, int position, int dimension) {
+    
+    Matrix* matrix = instantiate_matrix(dimension);
+    populate_matrix(matrix, infile, position, dimension);
+    return matrix;
+}
+
+// Required format for assignment output
+void print_diagonal(Matrix* matrix) {
+    cout << "Printing Matrix Diagonal" << endl;
+    for (int i = 0; i < matrix->dimension; i++) {
+        cout << matrix->entries[i][i] << endl;
+    }
+}
+
+// Print in grid form
+void print_formatted_matrix(Matrix* matrix) {
+    cout << "Printing Matrix" << endl;
+    int row, col;
+    for (row = 0; row < matrix->dimension; row++) {
+        for (col = 0; col < matrix->dimension; col++) {
+            cout << matrix->entries[row][col] << "  ";
+        }
+        cout << endl;
+    }
+}
+
+// Print each matrix element, a(0,0), a(0,1), ..., a(dimension,dimension) on new line
+void print_whole_matrix(Matrix* matrix) {
+    cout << "Printing matrix" << endl;
+	int row,col;
+	for (row = 0; row < matrix->dimension; row++) {
+		for (col = 0; col < matrix->dimension; col++) {
+			cout << matrix->entries[row][col] << endl;
 		}
-
-		// build matrix 2
-		for (int col = 0; col < dimension; col++) {
-			for (int row = 0; row < dimension; row++) {
-				if (getline(inputfile, element)) {
-					mat2[col*dimension + row] = stoi(element);
-					element = "";
-				}
-				else {
-					cout << "File does not contain enough data" << endl;
-					exit(EXIT_FAILURE);
-				}
-			}
-		}
-	}
-	else {
-        cout << "Unable to open file" << endl;
-		exit(EXIT_FAILURE);
 	}
 }
 
-// Print each matrix element, a(0,0), a(0,1),...,a(dimension,dimension)
-void print_matrix(int * matrix, int dimension) {
-	int i,j;
-	for (i = 0; i < dimension; i++) {
-		for (j = 0; j < dimension; j++) {
-			cout << matrix[i*dimension + j] << endl;
-		}
-	}
-}
+/*
+ 
+ UTILITY FUNCTIONS FOR MATRIX MULT
+ 
+ */
 
 // calculates the dot product of row r of mat1 and col c of mat2
 int dotprod(int* mat1, int*mat2, int r, int c, int dimension) {
@@ -65,6 +110,12 @@ int dotprod(int* mat1, int*mat2, int r, int c, int dimension) {
 	}
 	return answer;
 }
+
+/* 
+ 
+ TRADITIONAL MATRIX MULT
+ 
+ */
 
 // mutiplies matrices mat1 and mat2 traditionally
 int * tradmult(int* mat1, int*mat2, int dimension) {
@@ -76,6 +127,12 @@ int * tradmult(int* mat1, int*mat2, int dimension) {
 	}
 	return ansmat;
 }
+
+/* 
+ 
+ STRASSEN'S METHOD
+ 
+ */
 
 // multiplies matrices using strassen's method
 int * strassenmult(int* mata, int*matb, int dimension) {
@@ -223,54 +280,24 @@ int main(int argc, char* argv[])
 {
 	// check to ensure correct number of arguments
 	if (argc != 4) {
-		cout << "Please enter the correct number of arguments";
+        cout << "Please enter the correct number of arguments" << endl;
 		return -1;
 	}
 	
+    int flag = stoi(argv[1]);
+    int dimension = stoi(argv[2]);
+    string infile = argv[3];
+    
 	// TEST CODE
-	if (argv[1] != 0) {
-
+	if (flag == 1) {
+        cout << "Run test suite 1" << endl;
 	}
-
-	// initialize dimension
-	int dimension;
-	dimension = stoi(argv[2]);
-
-	// create matrix representations
-	int* mat1 = new int[dimension*dimension];
-	int* mat2 = new int[dimension*dimension];
-
-	build_matrices(argv[3], dimension, mat1, mat2);
-
-	print_matrix(mat1, dimension);
-	print_matrix(mat2, dimension);
-
-	print_matrix(tradmult(mat1, mat2, dimension), dimension);
-	print_matrix(strassenmult(mat1, mat2, dimension), dimension);
-
+    
+    Matrix* A = build_matrix(infile, 0, dimension);
+    
+    // The second parameter refers to the position to begin reading from the txt file
+    Matrix* B = build_matrix(infile, dimension*dimension, dimension);
+    
+    print_formatted_matrix(A);
+    print_formatted_matrix(B);
 }
-
-/*
-// add mat1 and mat2
-int * addmat(int* mat1, int*mat2, int dimension) {
-int* ansmat = new int[dimension*dimension];
-for (int i = 0; i < dimension; i++) {
-for (int j = 0; j < dimension; j++) {
-ansmat[j*dimension + i] = mat1[j*dimension + i] + mat2[j*dimension + i];
-}
-}
-return ansmat;
-}
-
-// subtract mat2 from mat1
-int * subtractmat(int* mat1, int*mat2, int dimension) {
-int* ansmat = new int[dimension*dimension];
-for (int i = 0; i < dimension; i++) {
-for (int j = 0; j < dimension; j++) {
-ansmat[j*dimension + i] = mat1[j*dimension + i] - mat2[j*dimension + i];
-}
-}
-return ansmat;
-}
-
-*/

@@ -29,6 +29,7 @@
 		58B62A2E1CA0249E00EDF0E6 /* test2d.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = test2d.txt; sourceTree = "<group>"; };
 		58B62A2F1CA0249E00EDF0E6 /* test4d.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = test4d.txt; sourceTree = "<group>"; };
 		58B62A311CA02D8E00EDF0E6 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		58B62A331CA1011800EDF0E6 /* test.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = test.txt; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -64,6 +65,7 @@
 				58B62A311CA02D8E00EDF0E6 /* README.md */,
 				58B62A2D1CA0249E00EDF0E6 /* main.cpp */,
 				58B62A2E1CA0249E00EDF0E6 /* test2d.txt */,
+				58B62A331CA1011800EDF0E6 /* test.txt */,
 				58B62A2F1CA0249E00EDF0E6 /* test4d.txt */,
 			);
 			path = "strassens-zbathen-jkahn";
