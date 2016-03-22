@@ -21,7 +21,7 @@ void build_matrices(string infile, int dimension, int* mat1, int* mat2) {
 					element = "";
 				}
 				else {
-					cout << "File does not contain enough data";
+					cout << "File does not contain enough data" << endl;
 					exit(EXIT_FAILURE);
 				}
 			}
