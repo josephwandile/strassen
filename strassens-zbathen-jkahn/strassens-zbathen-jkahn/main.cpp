@@ -30,7 +30,7 @@ Matrix* instantiate_matrix(int dimension) {
 }
 
 // Does the actual IO work for populating matrices
-void populate_matrix(Matrix* matrix, string infile, int position, int dimension) {
+void populate_matrix(Matrix* matrix, string infile, int position, int dimension, bool left_matrix=true) {
     
     ifstream inputfile(infile);
     string element = "";
@@ -45,8 +45,13 @@ void populate_matrix(Matrix* matrix, string infile, int position, int dimension)
         for (int row = 0; row < dimension; row++) {
             for (int col = 0; col < dimension; col++) {
                 if (getline(inputfile, element)) {
-                    matrix->entries[row][col] = stoi(element);
-                    element = "";
+                    if (left_matrix) {
+                        matrix->entries[row][col] = stoi(element);
+                        element = "";
+                    } else {
+                        matrix->entries[col][row] = stoi(element);
+                        element = "";
+                    }
                 }
                 else {
                     cout << "File does not contain enough data" << endl;
@@ -58,10 +63,10 @@ void populate_matrix(Matrix* matrix, string infile, int position, int dimension)
 }
 
 // Instantiates and populates a matrix from a specific point in the input file
-Matrix* build_matrix(string infile, int position, int dimension) {
+Matrix* build_matrix(string infile, int position, int dimension, bool left_matrix=true) {
     
     Matrix* matrix = instantiate_matrix(dimension);
-    populate_matrix(matrix, infile, position, dimension);
+    populate_matrix(matrix, infile, position, dimension, left_matrix);
     return matrix;
 }
 
@@ -74,12 +79,16 @@ void print_diagonal(Matrix* matrix) {
 }
 
 // Print in grid form
-void print_formatted_matrix(Matrix* matrix) {
+void print_formatted_matrix(Matrix* matrix, bool left_matrix=true) {
     cout << "Printing Matrix" << endl;
     int row, col;
     for (row = 0; row < matrix->dimension; row++) {
         for (col = 0; col < matrix->dimension; col++) {
-            cout << matrix->entries[row][col] << "  ";
+            if (left_matrix) {
+                cout << matrix->entries[row][col] << "  ";
+            } else {
+                cout << matrix->entries[col][row] << "  ";
+            }
         }
         cout << endl;
     }
@@ -276,6 +285,12 @@ int * strassenmult(int* mata, int*matb, int dimension) {
 	}
 }
 
+/*
+ 
+ PROGRAM INTERFACE 
+ 
+ */
+
 int main(int argc, char* argv[])
 {
 	// check to ensure correct number of arguments
@@ -293,10 +308,15 @@ int main(int argc, char* argv[])
         cout << "Run test suite 1" << endl;
 	}
     
-    Matrix* A = build_matrix(infile, 0, dimension);
+    Matrix* A = build_matrix(infile, 0, dimension, true);
     
-    // The second parameter refers to the position to begin reading from the txt file
-    Matrix* B = build_matrix(infile, dimension*dimension, dimension);
+    /*
+     The second parameter determines where to start reading in from the text file.
+     
+     The last parameter refers to the fact that this is a "right_matrix"-- basically that it is
+     an array of columns instead of rows, which yields improved caching performance during matrix multiplication.
+     */
+    Matrix* B = build_matrix(infile, dimension*dimension, dimension, false);
     
     print_formatted_matrix(A);
     print_formatted_matrix(B);
