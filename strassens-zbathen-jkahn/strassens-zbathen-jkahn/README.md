@@ -18,7 +18,7 @@
  * What types of matrices were tested? Does it matter?
 
 * Normal Mult
- * What does "looping through in right order" refer to?
+ * Caching optimization
 
 * Strassen
  * Padding
