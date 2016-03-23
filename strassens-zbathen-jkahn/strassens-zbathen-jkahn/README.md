@@ -2,6 +2,10 @@
 
 > Optimizing Strassen's Algorithm for Matrix Multiplication
 
+## Analysis
+
+* All timing data is generated with format `[strassen|traditional]_[smallest_dim]_[largest_dim]_[trials_per_dim]` and is found in the root directory.
+
 ## TODOs
 
 * All calculations up to 32 bits

@@ -9,6 +9,8 @@
 
 // TODO funcName consistency
 
+// TODO func to return two matrices to be multiplied
+
 // TODO padding necessary? keep track of position in original matrix at all times and simply return if would have been 0s
 
 using namespace std;
@@ -342,12 +344,20 @@ void test_multiplication(string infile, int dimension, bool using_strassen=true,
 void timing_utility(string infile, int lower_bound, int upper_bound, int trials, bool using_strassen=true) {
     
     int cur_matrix_dimension;
+    string file_name;
     
     if (using_strassen) {
         cout << "Strassen" << endl;
+        file_name = "strassen_";
     } else {
         cout << "Traditional" << endl;
+        file_name = "traditional_";
     }
+    
+    // Build ouput file name
+    file_name += to_string(lower_bound) + "_" + to_string(upper_bound) + "_" + to_string(trials) + ".txt";
+    ofstream output_file;
+    output_file.open(file_name);
 
     for (cur_matrix_dimension = lower_bound; cur_matrix_dimension <= upper_bound; cur_matrix_dimension++) {
     
@@ -364,7 +374,6 @@ void timing_utility(string infile, int lower_bound, int upper_bound, int trials,
             Matrix* A = build_matrix(infile, 0, cur_matrix_dimension, true);
             Matrix* B = build_matrix(infile, cur_matrix_dimension*cur_matrix_dimension, cur_matrix_dimension, false);
             double construct_total = (clock() - construct_start) / (double)(CLOCKS_PER_SEC);
-            cout << construct_total << "s" << " for construction during trial " << trial << endl;
             total_construct_time += construct_total;
             
             clock_t mult_start = clock();
@@ -376,15 +385,20 @@ void timing_utility(string infile, int lower_bound, int upper_bound, int trials,
             }
             
             double mult_total = (clock() - mult_start) / (double)(CLOCKS_PER_SEC);
-            cout << mult_total << "s" << " for multiplication during trial " << trial << endl;
             total_mult_time += mult_total;
+            
+//            cout << construct_total << "s" << " for construction during trial " << trial << endl;
+//            cout << mult_total << "s" << " for multiplication during trial " << trial << endl;
         }
         
         avg_mult_time = total_mult_time / trials;
         avg_construct_time = total_construct_time / trials;
         
         cout << "Average Time for Construction:    " << avg_construct_time << endl << "Average Time for Mult:    " << avg_mult_time << endl;
+        output_file << cur_matrix_dimension << "\t" << avg_mult_time << endl;
     }
+    
+    output_file.close();
 }
 
 Matrix* generate_random_matrix(int dimension) {
