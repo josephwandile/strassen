@@ -204,6 +204,9 @@ Matrix * strassenmult(Matrix* mata, Matrix* matb, int dimension) {
 		return trad_mult(mata, matb);
 	} else {
 
+        // TODO make even more modular
+
+        
 
 		Matrix * m1a = ref_arith(mata, 0, 0, dimension / 2, dimension / 2, dimension / 2, true);
 		Matrix * m1b = ref_arith(matb, 0, 0, dimension / 2, dimension / 2, dimension / 2, true);
@@ -235,6 +238,7 @@ Matrix * strassenmult(Matrix* mata, Matrix* matb, int dimension) {
 
 		// fill answer matrix using found m matrices
 		Matrix * ans_mat = instantiate_matrix(dimension);
+        
 
 		// c11 = m1 + m4 - m5 + m7
 		for (int col = 0; col < dimension / 2; col++) {
@@ -435,11 +439,7 @@ int main(int argc, char* argv[]) {
         print_formatted_matrix(C);
         print_formatted_matrix(correct_C);
         
-<<<<<<< HEAD
         assert(matrices_are_equal(correct_C, C));
-=======
-//      assert(matrices_are_equal(correct_C, C));
->>>>>>> 3ff0bd98daef1ba7a4216957868ec34975b4520e
         
         return 0;
     }
