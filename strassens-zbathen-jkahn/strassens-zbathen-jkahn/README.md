@@ -6,6 +6,12 @@
 
 * All calculations up to 32 bits
 * Randomly populate for testing with {0,1}, {0,1,2}, {-1,0,1}
+* Inline strassen implementation
+* Increase modularity
+* Excel analysis / i.e. printing to CSV
+* Do mathy analysis 
+* Padding (lazy data structures?)
+* Decide how to do memory management for auxiliary matrices
 
 * Writeup
  * left_matrix v. right_matrix to promote cache efficiency
@@ -14,8 +20,3 @@
  * How low was cross-over point
  * Describe bugs and difficulties
  * What types of matrices were tested? Does it matter?
-
-* Strassen
- * Padding
- * Avoid copying data (i.e. perhaps build smaller matrices by simply referring to parts of the larger one)
- * When to use auxiliary matrices

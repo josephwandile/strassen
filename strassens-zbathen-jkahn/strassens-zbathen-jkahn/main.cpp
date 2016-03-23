@@ -453,5 +453,9 @@ int main(int argc, char* argv[]) {
         timing_utility(infile, dimension, dimension, 5);
     }
     
-    if (flag == 5) {}
+    if (flag == 5) {
+        
+        // False flag reqs Strassen
+        timing_utility(infile, dimension, dimension, 5, false);
+    }
 }
