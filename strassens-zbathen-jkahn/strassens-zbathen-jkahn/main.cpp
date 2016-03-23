@@ -6,24 +6,30 @@
 #include <iomanip>
 #include <assert.h>
 #include <ctime>
+#include <random>
 
-// TODO funcName consistency
 
 // TODO func to return two matrices to be multiplied
 
-// TODO padding necessary? keep track of position in original matrix at all times and simply return if would have been 0s
 
+/*
+ 
+ PROGRAM SETUP
+ 
+ */
 using namespace std;
 const int CUTOFF = 1;
 const bool IN_DEV = true;
 const string OUPUT_SEPERATOR = "-----------------------------\n\n";
+
+default_random_engine generator;
+uniform_int_distribution<int> distribution(-1,2);
 
 /*
 
  Definition of Matrix as well as utility functions for generating, populating, and printing them.
 
  */
-
 // Basic Matrix struct
 typedef struct Matrix {
     bool left_matrix;
@@ -406,19 +412,14 @@ void timingUtility(string infile, int lower_bound, int upper_bound, int trials, 
 
 Matrix* genRandMatrix(int dimension) {
 
-    int min = -1;
-    int max = 2;
-    int output, i, j;
-
+    int new_entry, i, j;
     Matrix* matrix = instantiateMatrix(dimension);
 
     for (i = 0; i < dimension; i++) {
         for (j=0; j < dimension; j++) {
 
-            output = min + (rand() % (int)(max - min + 1));
-
-            // TODO seed random num generator and build matrix
-
+            new_entry = distribution(generator);
+            matrix->entries[i][j] = new_entry;
         }
     }
     return matrix;
@@ -448,6 +449,9 @@ int main(int argc, char* argv[]) {
         testMultiplication(infile, dimension, false);
         cout << "Basic Tests Pass. Executing instructions from command line." << endl << OUPUT_SEPERATOR;
     }
+    
+//    Matrix* T = genRandMatrix(5);
+//    printMatrix(T, false);
 
     if (flag == 0) {
 
