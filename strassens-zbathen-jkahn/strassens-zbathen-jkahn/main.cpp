@@ -3,6 +3,9 @@
 #include <string>
 #include <vector>
 #include <stdexcept>
+#include <iomanip>
+#include <assert.h>
+//#include <ctime>
 
 using namespace std;
 const int CUTOFF = 1;
@@ -92,13 +95,16 @@ void print_formatted_matrix(Matrix* matrix) {
     } else {
         cout << "Printing Right Matrix" << endl;
     }
-    int row, col;
+    int row, col, entry;
+    string entry_as_str;
     for (row = 0; row < matrix->dimension; row++) {
         for (col = 0; col < matrix->dimension; col++) {
             if (is_left_matrix) {
-                cout << matrix->entries[row][col] << "  ";
+                entry = matrix->entries[row][col];
+                cout << setw(5) << entry;
             } else {
-                cout << matrix->entries[col][row] << "  ";
+                entry = matrix->entries[col][row];
+                cout << setw(5) <<  entry;
             }
         }
         cout << endl;
@@ -115,36 +121,43 @@ void print_formatted_matrix(Matrix* matrix) {
 // mutiplies matrices mat1 and mat2 traditionally
 Matrix* trad_mult(Matrix* l_matrix, Matrix* r_matrix) {
     
-    if (l_matrix->left_matrix && r_matrix->left_matrix) {
-        throw invalid_argument("Can't multiply two left matrices.");
-    }
-    
     if (l_matrix->dimension != r_matrix->dimension) {
         throw invalid_argument("Function only multiplies square matrices.");
     }
     
     int dimension = l_matrix->dimension;
 
-    // TODO More efficient to index into a right_matrix, but using left_matrix for now.
-    Matrix* ansmat = instantiate_matrix(dimension, true);
+    // Always outputs a matrix in standard form (i.e. Matrix[rows][cols])
+    Matrix* ansmat = instantiate_matrix(dimension);
     
     int i, j, r, cur_dot_prod;
     
-    for (r = 0; r < dimension; r++) {
-        
-        for (i = 0; i < dimension; i++) {
-            
-            cur_dot_prod = 0;
-            
-            for (j = 0; j < dimension; j++) {
-                
-                cur_dot_prod += l_matrix->entries[i][j] * r_matrix->entries[r][j];
+    // If matrix on RHS is in transposed form, optimize cache use
+    if (!r_matrix->left_matrix) {
+        for (r = 0; r < dimension; r++) {
+            for (i = 0; i < dimension; i++) {
+                cur_dot_prod = 0;
+                for (j = 0; j < dimension; j++) {
+                    cur_dot_prod += l_matrix->entries[i][j] * r_matrix->entries[r][j];
+                }
+                ansmat->entries[i][r] = cur_dot_prod;
             }
-        
-            // TODO Assumes left_matrix to be ouput. Invert if right_matrix
-            ansmat->entries[i][r] = cur_dot_prod;
         }
+        
+    // Standard matrix multiplication if both are in standard form
+    } else {
+        for (r = 0; r < dimension; r++) {
+            for (i = 0; i < dimension; i++) {
+                cur_dot_prod = 0;
+                for (j = 0; j < dimension; j++) {
+                    cur_dot_prod += l_matrix->entries[i][j] * r_matrix->entries[j][r];
+                }
+                ansmat->entries[i][r] = cur_dot_prod;
+            }
+        }
+
     }
+    
 	return ansmat;
 }
 
@@ -297,12 +310,75 @@ Matrix * strassenmult(Matrix* mata, Matrix* matb, int dimension) {
 
 /*
  
- PROGRAM INTERFACE 
+ TESTING
  
  */
 
-int main(int argc, char* argv[])
-{
+// Assumes left_matrix
+bool matrices_are_equal(Matrix* A, Matrix* B) {
+    
+    bool are_equal = true;
+    
+    if (A->dimension != B->dimension) {
+        return false;
+    }
+    
+    int dimension = A->dimension;
+    
+    int i, j;
+    
+    for (i = 0; i < dimension; i++) {
+        for (j = 0; j < dimension; j++) {
+            
+            if (A->entries[i][j] != B->entries[i][j]) {
+                return false;
+            }
+        }
+    }
+    return are_equal;
+}
+
+// TODO Incremental values of n output to a txt file, separate by tabs or commas for excel analysis
+void timing_utility(string infile, int dimension, int trials, bool normal_mult=true) {
+    
+    int total_construct_time = 0;
+    int total_mult_time = 0;
+    int avg_construct_time = 0;
+    int avg_mult_time = 0;
+    
+    for (int trial = 0; trial < trials; trial++) {
+        
+        clock_t construct_start = clock();
+        Matrix* A = build_matrix(infile, 0, dimension, true);
+        Matrix* B = build_matrix(infile, dimension*dimension, dimension, false);
+        double construct_total = (clock() - construct_start) / (double)(CLOCKS_PER_SEC);
+        cout << "Time for Matrix Construction:    " << construct_total << "s" << endl;
+        total_construct_time += construct_total;
+
+        clock_t mult_start = clock();
+        Matrix* C;
+        if (normal_mult) {
+            C = trad_mult(A,B);
+        } else {
+            C = strassenmult(A,B, dimension);
+        }
+        
+        double mult_total = (clock() - mult_start) / (double)(CLOCKS_PER_SEC);
+        cout << "Time for Mult:    " << mult_total << "s" << endl;
+        total_mult_time += mult_total;
+    }
+    
+    avg_mult_time = total_mult_time / trials;
+    avg_construct_time = total_construct_time / trials;
+}
+
+/*
+ 
+ PROGRAM INTERFACE
+ 
+ */
+
+int main(int argc, char* argv[]) {
 	// check to ensure correct number of arguments
 	if (argc != 4) {
         cout << "Please enter the correct number of arguments" << endl;
@@ -313,24 +389,72 @@ int main(int argc, char* argv[])
     int dimension = stoi(argv[2]);
     string infile = argv[3];
     
-	// TEST CODE
-	if (flag == 1) {
-        cout << "Run test suite 1" << endl;
+    if (flag == 0) {
         
-        // TODO Write test function for matrix equivalency
-	}
+        Matrix* A = build_matrix(infile, 0, dimension, true);
+        
+        /*
+         The second parameter determines where to start reading in from the text file.
+         
+         The last parameter refers to the fact that this is a "right_matrix"-- basically that it is
+         an array of columns instead of rows, which yields improved caching performance during matrix multiplication.
+         */
+        Matrix* B = build_matrix(infile, dimension*dimension, dimension, false);
+        
+        Matrix* C = trad_mult(A,B);
+        print_formatted_matrix(C);
+    }
     
-    Matrix* A = build_matrix(infile, 0, dimension, true);
+	if (flag == 1) {
+        cout << "Testing Traditional Multiplication" << endl;
+        
+        Matrix* A = build_matrix(infile, 0, dimension);
+        Matrix* B = build_matrix(infile, dimension*dimension, dimension);
+        Matrix* C = trad_mult(A,B);
     
-    /*
-     The second parameter determines where to start reading in from the text file.
-     
-     The last parameter refers to the fact that this is a "right_matrix"-- basically that it is
-     an array of columns instead of rows, which yields improved caching performance during matrix multiplication.
-     */
-    Matrix* B = build_matrix(infile, dimension*dimension, dimension, false);
+        // Left matrix built from test files
+        Matrix* correct_C = build_matrix(infile, dimension*dimension*2, dimension);
+        
+        print_formatted_matrix(C);
+        print_formatted_matrix(correct_C);
+        
+        assert(matrices_are_equal(correct_C, C));
+        
+        return 0;
+    }
+    
+    if (flag == 2) {
+        cout << "Testing Strassen's Multiplication" << endl;
+        
+        Matrix* A = build_matrix(infile, 0, dimension, true);
+        Matrix* B = build_matrix(infile, dimension*dimension, dimension, false);
+        Matrix* C = strassenmult(A, B, dimension);
+        
+        // Left matrix built from test files
+        Matrix* correct_C = build_matrix(infile, dimension*dimension*2, dimension, true);
+        
+        print_formatted_matrix(C);
+        print_formatted_matrix(correct_C);
+        
+//        assert(matrices_are_equal(correct_C, C));
+        
+        return 0;
 
-    Matrix* C = trad_mult(A,B);
-    print_formatted_matrix(C);
-	print_formatted_matrix(strassenmult(A, B, dimension));
+    }
+    
+    if (flag == 3) {
+        
+        cout << "Testing Cache-optimized Traditional Mult" << endl;
+    }
+    
+    if (flag == 4) {
+        
+        cout << "Generating Time Data for Trad Mult" << endl;
+        
+    }
+    
+    if (flag == 5) {
+        
+        cout << "Generating Time Data for Strassen Mult" << endl;
+    }
 }
