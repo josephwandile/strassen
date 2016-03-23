@@ -160,7 +160,6 @@ Matrix * strassenmult(Matrix* mata, Matrix* matb, int dimension) {
 	if (dimension <= CUTOFF){
 		return trad_mult(mata, matb);
 	} else {
-		Matrix * ansmat = instantiate_matrix(dimension);
 
 		// create matrces for "clever multiplication"
 		Matrix * m1 = instantiate_matrix(dimension/2);
@@ -172,14 +171,14 @@ Matrix * strassenmult(Matrix* mata, Matrix* matb, int dimension) {
 		Matrix * m7 = instantiate_matrix(dimension/2);
 
 		// fill m1 = (a11 + a22)(b11+b22)
-		Matrix * m1a = instantiate_matrix(dimension/2); // all of these can be reduced to just 
-		Matrix * m1b = instantiate_matrix(dimension/2, false); // 2 "working matrices" later
+		Matrix * m1a = instantiate_matrix(dimension / 2); // all of these can be reduced to just 
+		Matrix * m1b = instantiate_matrix(dimension / 2, false); // 2 "working matrices" later
 		for (int col = 0; col < dimension/2; col++) {
 			for (int row = 0; row < dimension/2; row++) {
 				m1a->entries[row][col] = mata->entries[row][col] + 
 					mata->entries[row + dimension/2][col + dimension/2];
-				m1b->entries[col][row] = matb->entries[col][row] + 
-					matb->entries[(col + dimension/2)][row + dimension/2];
+				m1b->entries[row][col] = matb->entries[row][col] + 
+					matb->entries[row + dimension/2][col + dimension/2];
 			}
 		}
 		m1 = strassenmult(m1a, m1b, dimension/2);
@@ -191,7 +190,7 @@ Matrix * strassenmult(Matrix* mata, Matrix* matb, int dimension) {
 			for (int row = 0; row < dimension / 2; row++) {
 				m2a->entries[row][col] = mata->entries[row+dimension/2][col] + 
 					mata->entries[row + dimension/2][col + dimension/2];
-				m2b->entries[col][row] = matb->entries[col][row];
+				m2b->entries[row][col] = matb->entries[row][col];
 			}
 		}
 		m2 = strassenmult(m2a, m2b, dimension/2);
@@ -202,8 +201,8 @@ Matrix * strassenmult(Matrix* mata, Matrix* matb, int dimension) {
 		for (int col = 0; col < dimension / 2; col++) {
 			for (int row = 0; row < dimension / 2; row++) {
 				m3a->entries[row][col] = mata->entries[row][col];
-				m3b->entries[col][row] = matb->entries[col + dimension/2][row] -
-					matb->entries[(col + dimension / 2)][row + dimension / 2];
+				m3b->entries[row][col] = matb->entries[row + dimension/2][col] -
+					matb->entries[row + dimension / 2][col + dimension / 2];
 			}
 		}
 		m3 = strassenmult(m3a, m3b, dimension/2);
@@ -214,8 +213,8 @@ Matrix * strassenmult(Matrix* mata, Matrix* matb, int dimension) {
 		for (int col = 0; col < dimension / 2; col++) {
 			for (int row = 0; row < dimension / 2; row++) {
 				m4a->entries[row][col] = mata->entries[row + dimension / 2][col + dimension / 2];
-				m4b->entries[col][row] = matb->entries[col+dimension / 2][row] -
-					matb->entries[col][row];
+				m4b->entries[row][col] = matb->entries[row + dimension / 2][col] -
+					matb->entries[row][col];
 			}
 		}
 		m4 = strassenmult(m4a, m4b, dimension/2);
@@ -227,7 +226,7 @@ Matrix * strassenmult(Matrix* mata, Matrix* matb, int dimension) {
 			for (int row = 0; row < dimension / 2; row++) {
 				m5a->entries[row][col] = mata->entries[row][col] +
 					mata->entries[row][col + dimension/2];
-				m5b->entries[col][row] = matb->entries[col + dimension/2][row + dimension/2];
+				m5b->entries[row][col] = matb->entries[row + dimension/2][col + dimension/2];
 			}
 		}
 		m5 = strassenmult(m5a, m5b, dimension / 2);
@@ -239,8 +238,8 @@ Matrix * strassenmult(Matrix* mata, Matrix* matb, int dimension) {
 			for (int row = 0; row < dimension / 2; row++) {
 				m6a->entries[row][col] = mata->entries[row+dimension/2][col] -
 					mata->entries[row][col];
-				m6b->entries[col][row] = matb->entries[col][row] +
-					matb->entries[col][row + dimension/2];
+				m6b->entries[row][col ] = matb->entries[row][col] +
+					matb->entries[row][col + dimension/2];
 			}
 		}
 		m6 = strassenmult(m6a, m6b, dimension / 2);
@@ -252,19 +251,20 @@ Matrix * strassenmult(Matrix* mata, Matrix* matb, int dimension) {
 			for (int row = 0; row < dimension / 2; row++) {
 				m7a->entries[row][col] = mata->entries[row][col + dimension/2] -
 					mata->entries[row + dimension/2][col + dimension/2];
-				m7b->entries[col][row] = matb->entries[col + dimension/2][row] +
-					matb->entries[col + dimension/2][row + dimension / 2];
+				m7b->entries[row][col] = matb->entries[row + dimension/2][col] +
+					matb->entries[row + dimension/2][col + dimension / 2];
 			}
 		}
 		m7 = strassenmult(m7a, m7b, dimension / 2);
 	
 		
 		// fill answer matrix using found m matrices
+		Matrix * ans_mat = instantiate_matrix(dimension);
 
 		// c11 = m1 + m4 - m5 + m7
 		for (int col = 0; col < dimension / 2; col++) {
 			for (int row = 0; row < dimension / 2; row++) {
-				ansmat->entries[row][col] = m1->entries[row][col] + m4->entries[row][col]
+				ans_mat->entries[row][col] = m1->entries[row][col] + m4->entries[row][col]
 					- m5->entries[row][col] + m7->entries[row][col];
 			}
 		}
@@ -272,26 +272,26 @@ Matrix * strassenmult(Matrix* mata, Matrix* matb, int dimension) {
 		// c12 = m3 + m5
 		for (int col = 0; col < dimension / 2; col++) {
 			for (int row = 0; row < dimension / 2; row++) {
-				ansmat->entries[row][col + dimension/2] = m3->entries[row][col] + m5->entries[row][col];
+				ans_mat->entries[row][col + dimension/2] = m3->entries[row][col] + m5->entries[row][col];
 			}
 		}
 
 		// c21 = m2 + m4
 		for (int col = 0; col < dimension / 2; col++) {
 			for (int row = 0; row < dimension / 2; row++) {
-				ansmat->entries[row + dimension/2][col] = m2->entries[row][col] + m4->entries[row][col];
+				ans_mat->entries[row + dimension/2][col] = m2->entries[row][col] + m4->entries[row][col];
 			}
 		}
 
 		// c22 = m1 - m2 + m3 + m6
 		for (int col = 0; col < dimension / 2; col++) {
 			for (int row = 0; row < dimension / 2; row++) {
-				ansmat->entries[row + dimension/2][col + dimension/2] =
+				ans_mat->entries[row + dimension/2][col + dimension/2] =
 					m1->entries[row][col] - m2->entries[row][col]
 					+ m3->entries[row][col] + m6->entries[row][col];
 			}
 		}
-		return ansmat;
+		return ans_mat;
 	}
 }
 
@@ -332,5 +332,5 @@ int main(int argc, char* argv[])
 
     Matrix* C = trad_mult(A,B);
     print_formatted_matrix(C);
-//	print_formatted_matrix(strassenmult(A, B, 2));
+	print_formatted_matrix(strassenmult(A, B, dimension));
 }
