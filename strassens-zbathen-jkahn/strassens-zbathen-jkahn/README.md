@@ -20,3 +20,10 @@
  * How low was cross-over point
  * Describe bugs and difficulties
  * What types of matrices were tested? Does it matter?
+
+* Analysis
+ * Building the Ms involves 10 additions/subtractions of matrices each of dim n/2. 7 multiplications.
+ * Building the Cs involves 8 additions/subtractions each of dim n/2.
+ * Conventionally we consider the Ms to be auxiliary. 
+ * "Both initial matrices must have their dimensions expanded to the next power of 2, which results in storing up to four times as many elements, and the seven auxiliary matrices each contain a quarter of the elements in the expanded ones" ~ Wikipedia
+ * Change matrix passed in as param inline with the C matrices? 

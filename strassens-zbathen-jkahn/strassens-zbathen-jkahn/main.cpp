@@ -7,6 +7,10 @@
 #include <assert.h>
 #include <ctime>
 
+// TODO funcName consistency
+
+// TODO padding necessary? keep track of position in original matrix at all times and simply return if would have been 0s
+
 using namespace std;
 const int CUTOFF = 1;
 
@@ -78,36 +82,40 @@ Matrix* build_matrix(string infile, int position, int dimension, bool left_matri
 }
 
 // Required format for assignment output
-void print_diagonal(Matrix* matrix) {
-    cout << "Printing Matrix Diagonal" << endl;
-    for (int i = 0; i < matrix->dimension; i++) {
-        cout << matrix->entries[i][i] << endl;
-    }
-}
-
-// Print in grid form
-void print_formatted_matrix(Matrix* matrix) {
+void print_matrix(Matrix* matrix, bool printing_diagonal=true) {
     
-    bool is_left_matrix = matrix->left_matrix;
-    
-    if (is_left_matrix){
-        cout << "Printing Left Matrix" << endl;
-    } else {
-        cout << "Printing Right Matrix" << endl;
-    }
-    int row, col, entry;
-    string entry_as_str;
-    for (row = 0; row < matrix->dimension; row++) {
-        for (col = 0; col < matrix->dimension; col++) {
-            if (is_left_matrix) {
-                entry = matrix->entries[row][col];
-                cout << setw(5) << entry;
-            } else {
-                entry = matrix->entries[col][row];
-                cout << setw(5) <<  entry;
-            }
+    if (printing_diagonal) {
+        
+        cout << "Matrix Diagonal" << endl;
+        for (int i = 0; i < matrix->dimension; i++) {
+            cout << matrix->entries[i][i] << endl;
         }
-        cout << endl;
+        // Trailing newline
+        cout << "\n";
+        
+    } else {
+        
+        bool is_left_matrix = matrix->left_matrix;
+        
+        if (is_left_matrix){
+            cout << "Formatted Left Matrix" << endl;
+        } else {
+            cout << "Formatted Right Matrix" << endl;
+        }
+        int row, col, entry;
+        string entry_as_str;
+        for (row = 0; row < matrix->dimension; row++) {
+            for (col = 0; col < matrix->dimension; col++) {
+                if (is_left_matrix) {
+                    entry = matrix->entries[row][col];
+                    cout << setw(5) << entry;
+                } else {
+                    entry = matrix->entries[col][row];
+                    cout << setw(5) <<  entry;
+                }
+            }
+            cout << endl;
+        }
     }
 }
 
@@ -205,6 +213,7 @@ Matrix * strassenmult(Matrix* mata, Matrix* matb, int dimension) {
 	} else {
 
         // TODO make even more modular
+        // TODO need to pass in references to initial matrices for inline strass
 
         
 
@@ -304,16 +313,40 @@ bool matrices_are_equal(Matrix* A, Matrix* B) {
     return are_equal;
 }
 
+// TODO extend to allow for random matrix testing
+void test_multiplication(string infile, int dimension, bool using_strassen=true, bool use_random_matrices=true) {
+    
+    Matrix* A = build_matrix(infile, 0, dimension);
+    Matrix* B = build_matrix(infile, dimension*dimension, dimension);
+    Matrix* C;
+    
+    if (using_strassen) {
+        cout << "Testing Strassen" << endl;
+        C = strassenmult(A,B, dimension);
+    } else {
+        cout << "Testing Traditional Mult" << endl;
+        C = trad_mult(A,B);
+    }
+    
+    // Left matrix built from test files
+    Matrix* correct_C = build_matrix(infile, dimension*dimension*2, dimension);
+
+    assert(matrices_are_equal(correct_C, C));
+    
+    print_matrix(C);
+    print_matrix(correct_C);
+}
+
 // TODO Ouput averages of multiplication for each dimension to txt file
 // TODO Do this with random matrix
-void timing_utility(string infile, int lower_bound, int upper_bound, int trials, bool normal_mult=true) {
+void timing_utility(string infile, int lower_bound, int upper_bound, int trials, bool using_strassen=true) {
     
     int cur_matrix_dimension;
     
-    if (normal_mult) {
-        cout << "Normal Multiplication" << endl;
+    if (using_strassen) {
+        cout << "Strassen" << endl;
     } else {
-        cout << "Optimized Strassen" << endl;
+        cout << "Traditional" << endl;
     }
 
     for (cur_matrix_dimension = lower_bound; cur_matrix_dimension <= upper_bound; cur_matrix_dimension++) {
@@ -336,10 +369,10 @@ void timing_utility(string infile, int lower_bound, int upper_bound, int trials,
             
             clock_t mult_start = clock();
             Matrix* C;
-            if (normal_mult) {
-                C = trad_mult(A,B);
-            } else {
+            if (using_strassen) {
                 C = strassenmult(A,B, cur_matrix_dimension);
+            } else {
+                C = trad_mult(A,B);
             }
             
             double mult_total = (clock() - mult_start) / (double)(CLOCKS_PER_SEC);
@@ -349,7 +382,6 @@ void timing_utility(string infile, int lower_bound, int upper_bound, int trials,
         
         avg_mult_time = total_mult_time / trials;
         avg_construct_time = total_construct_time / trials;
-        
         
         cout << "Average Time for Construction:    " << avg_construct_time << endl << "Average Time for Mult:    " << avg_mult_time << endl;
     }
@@ -405,42 +437,20 @@ int main(int argc, char* argv[]) {
         Matrix* B = build_matrix(infile, dimension*dimension, dimension, false);
         
         Matrix* C = trad_mult(A,B);
-        print_formatted_matrix(C);
+        print_matrix(C);
     }
     
 	if (flag == 1) {
-        cout << "Testing Traditional Multiplication" << endl;
         
-        Matrix* A = build_matrix(infile, 0, dimension);
-        Matrix* B = build_matrix(infile, dimension*dimension, dimension);
-        Matrix* C = trad_mult(A,B);
-    
-        // Left matrix built from test files
-        Matrix* correct_C = build_matrix(infile, dimension*dimension*2, dimension);
-        
-        print_formatted_matrix(C);
-        print_formatted_matrix(correct_C);
-        
-        assert(matrices_are_equal(correct_C, C));
-        
+        // Strassen
+        test_multiplication(infile, dimension);
         return 0;
     }
     
     if (flag == 2) {
-        cout << "Testing Strassen's Multiplication" << endl;
-        
-        Matrix* A = build_matrix(infile, 0, dimension, true);
-        Matrix* B = build_matrix(infile, dimension*dimension, dimension);
-        Matrix* C = strassenmult(A, B, dimension);
-        
-        // Left matrix built from test files
-        Matrix* correct_C = build_matrix(infile, dimension*dimension*2, dimension, true);
-        
-        print_formatted_matrix(C);
-        print_formatted_matrix(correct_C);
-        
-        assert(matrices_are_equal(correct_C, C));
-        
+       
+        // Normal
+        test_multiplication(infile, dimension, false);
         return 0;
     }
     
@@ -450,12 +460,14 @@ int main(int argc, char* argv[]) {
     }
     
     if (flag == 4) {
+        
+        // Strassen
         timing_utility(infile, dimension, dimension, 5);
     }
     
     if (flag == 5) {
         
-        // False flag reqs Strassen
+        // Traditional
         timing_utility(infile, dimension, dimension, 5, false);
     }
 }
