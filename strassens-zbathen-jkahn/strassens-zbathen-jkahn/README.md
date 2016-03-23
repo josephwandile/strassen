@@ -4,22 +4,18 @@
 
 ## TODOs
 
-* Create a class for matrices
- * `[[],[],[]]` where each subarray is a row
- * build from text file row by row
- * print diagonal
- * all calculations up to 32 bits
- * Randomly populate for testing with {0,1}, {0,1,2}, {-1,0,1}
+* All calculations up to 32 bits
+* Randomly populate for testing with {0,1}, {0,1,2}, {-1,0,1}
 
 * Writeup
- * What optimizations in the code
+ * left_matrix v. right_matrix to promote cache efficiency
+ * inline strassen for space
+ * could have used DP to optimize standard matrix mult further
  * How low was cross-over point
  * Describe bugs and difficulties
  * What types of matrices were tested? Does it matter?
 
-* Normal Mult
- * Caching optimization
-
 * Strassen
  * Padding
  * Avoid copying data (i.e. perhaps build smaller matrices by simply referring to parts of the larger one)
+ * When to use auxiliary matrices

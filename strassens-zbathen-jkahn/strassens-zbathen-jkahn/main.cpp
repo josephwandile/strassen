@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <iomanip>
 #include <assert.h>
+//#include <ctime>
 
 using namespace std;
 const int CUTOFF = 1;
@@ -330,9 +331,43 @@ bool matrices_are_equal(Matrix* A, Matrix* B) {
     return are_equal;
 }
 
+// TODO Incremental values of n output to a txt file, separate by tabs or commas for excel analysis
+void timing_utility(string infile, int dimension, int trials, bool normal_mult=true) {
+    
+    int total_construct_time = 0;
+    int total_mult_time = 0;
+    int avg_construct_time = 0;
+    int avg_mult_time = 0;
+    
+    for (int trial = 0; trial < trials; trial++) {
+        
+        clock_t construct_start = clock();
+        Matrix* A = build_matrix(infile, 0, dimension, true);
+        Matrix* B = build_matrix(infile, dimension*dimension, dimension, false);
+        double construct_total = (clock() - construct_start) / (double)(CLOCKS_PER_SEC);
+        cout << "Time for Matrix Construction:    " << construct_total << "s" << endl;
+        total_construct_time += construct_total;
+
+        clock_t mult_start = clock();
+        Matrix* C;
+        if (normal_mult) {
+            C = trad_mult(A,B);
+        } else {
+            C = strassenmult(A,B, dimension);
+        }
+        
+        double mult_total = (clock() - mult_start) / (double)(CLOCKS_PER_SEC);
+        cout << "Time for Mult:    " << mult_total << "s" << endl;
+        total_mult_time += mult_total;
+    }
+    
+    avg_mult_time = total_mult_time / trials;
+    avg_construct_time = total_construct_time / trials;
+}
+
 /*
  
- PROGRAM INTERFACE 
+ PROGRAM INTERFACE
  
  */
 
@@ -392,5 +427,16 @@ int main(int argc, char* argv[]) {
         
         return 0;
 
+    }
+    
+    if (flag == 3) {
+        
+        cout << "Generating Time Data for Trad Mult" << endl;
+        
+    }
+    
+    if (flag == 4) {
+        
+        cout << "Generating Time Data for Strassen Mult" << endl;
     }
 }
