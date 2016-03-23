@@ -391,10 +391,21 @@ void timing_utility(string infile, int lower_bound, int upper_bound, int trials,
 
 Matrix* generate_random_matrix(int dimension) {
     
+    int min = -1;
+    int max = 2;
+    int output, i, j;
+    
     Matrix* matrix = instantiate_matrix(dimension);
     
-    // TODO sample from -1,0,1,2
-    
+    for (i = 0; i < dimension; i++) {
+        for (j=0; j < dimension; j++) {
+            
+            output = min + (rand() % (int)(max - min + 1));
+
+            // TODO seed random num generator and build matrix
+            
+        }
+    }
     return matrix;
 }
 
