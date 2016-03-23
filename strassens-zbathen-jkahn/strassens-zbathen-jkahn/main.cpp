@@ -121,36 +121,43 @@ void print_formatted_matrix(Matrix* matrix) {
 // mutiplies matrices mat1 and mat2 traditionally
 Matrix* trad_mult(Matrix* l_matrix, Matrix* r_matrix) {
     
-    if (l_matrix->left_matrix && r_matrix->left_matrix) {
-        throw invalid_argument("Can't multiply two left matrices.");
-    }
-    
     if (l_matrix->dimension != r_matrix->dimension) {
         throw invalid_argument("Function only multiplies square matrices.");
     }
     
     int dimension = l_matrix->dimension;
 
-    // TODO More efficient to index into a right_matrix, but using left_matrix for now.
-    Matrix* ansmat = instantiate_matrix(dimension, true);
+    // Always outputs a matrix in standard form (i.e. Matrix[rows][cols])
+    Matrix* ansmat = instantiate_matrix(dimension);
     
     int i, j, r, cur_dot_prod;
     
-    for (r = 0; r < dimension; r++) {
-        
-        for (i = 0; i < dimension; i++) {
-            
-            cur_dot_prod = 0;
-            
-            for (j = 0; j < dimension; j++) {
-                
-                cur_dot_prod += l_matrix->entries[i][j] * r_matrix->entries[r][j];
+    // If matrix on RHS is in transposed form, optimize cache use
+    if (!r_matrix->left_matrix) {
+        for (r = 0; r < dimension; r++) {
+            for (i = 0; i < dimension; i++) {
+                cur_dot_prod = 0;
+                for (j = 0; j < dimension; j++) {
+                    cur_dot_prod += l_matrix->entries[i][j] * r_matrix->entries[r][j];
+                }
+                ansmat->entries[i][r] = cur_dot_prod;
             }
-        
-            // TODO Assumes left_matrix to be ouput. Invert if right_matrix
-            ansmat->entries[i][r] = cur_dot_prod;
         }
+        
+    // Standard matrix multiplication if both are in standard form
+    } else {
+        for (r = 0; r < dimension; r++) {
+            for (i = 0; i < dimension; i++) {
+                cur_dot_prod = 0;
+                for (j = 0; j < dimension; j++) {
+                    cur_dot_prod += l_matrix->entries[i][j] * r_matrix->entries[j][r];
+                }
+                ansmat->entries[i][r] = cur_dot_prod;
+            }
+        }
+
     }
+    
 	return ansmat;
 }
 
@@ -401,12 +408,15 @@ int main(int argc, char* argv[]) {
 	if (flag == 1) {
         cout << "Testing Traditional Multiplication" << endl;
         
-        Matrix* A = build_matrix(infile, 0, dimension, true);
-        Matrix* B = build_matrix(infile, dimension*dimension, dimension, false);
+        Matrix* A = build_matrix(infile, 0, dimension);
+        Matrix* B = build_matrix(infile, dimension*dimension, dimension);
         Matrix* C = trad_mult(A,B);
     
         // Left matrix built from test files
-        Matrix* correct_C = build_matrix(infile, dimension*dimension*2, dimension, true);
+        Matrix* correct_C = build_matrix(infile, dimension*dimension*2, dimension);
+        
+        print_formatted_matrix(C);
+        print_formatted_matrix(correct_C);
         
         assert(matrices_are_equal(correct_C, C));
         
@@ -423,7 +433,10 @@ int main(int argc, char* argv[]) {
         // Left matrix built from test files
         Matrix* correct_C = build_matrix(infile, dimension*dimension*2, dimension, true);
         
-        assert(matrices_are_equal(correct_C, C));
+        print_formatted_matrix(C);
+        print_formatted_matrix(correct_C);
+        
+//        assert(matrices_are_equal(correct_C, C));
         
         return 0;
 
@@ -431,11 +444,16 @@ int main(int argc, char* argv[]) {
     
     if (flag == 3) {
         
+        cout << "Testing Cache-optimized Traditional Mult" << endl;
+    }
+    
+    if (flag == 4) {
+        
         cout << "Generating Time Data for Trad Mult" << endl;
         
     }
     
-    if (flag == 4) {
+    if (flag == 5) {
         
         cout << "Generating Time Data for Strassen Mult" << endl;
     }
