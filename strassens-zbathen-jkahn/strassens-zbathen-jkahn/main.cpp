@@ -15,6 +15,8 @@
 
 using namespace std;
 const int CUTOFF = 1;
+const bool IN_DEV = true;
+const string OUPUT_SEPERATOR = "-----------------------------\n\n";
 
 /*
 
@@ -315,7 +317,7 @@ bool matricesAreEqual(Matrix* A, Matrix* B) {
 }
 
 // TODO extend to allow for random matrix testing
-void testMultiplication(string infile, int dimension, bool using_strassen=true, bool use_random_matrices=true) {
+void testMultiplication(string infile, int dimension, bool using_strassen=true, bool use_random_matrices=true, bool printing_matrix=false) {
 
     Matrix* A = buildMatrix(infile, 0, dimension);
     Matrix* B = buildMatrix(infile, dimension*dimension, dimension);
@@ -334,8 +336,10 @@ void testMultiplication(string infile, int dimension, bool using_strassen=true, 
 
     assert(matricesAreEqual(correct_C, C));
 
-    printMatrix(C);
-    printMatrix(correct_C);
+    if (printing_matrix) {
+        printMatrix(C);
+        printMatrix(correct_C);
+    }
 }
 
 // TODO Should be able to more precisely define range for testing
@@ -365,7 +369,7 @@ void timingUtility(string infile, int lower_bound, int upper_bound, int trials, 
         double avg_construct_time = 0;
         double avg_mult_time = 0;
 
-        cout << "Matrix of Size: " << cur_matrix_dimension << endl << "+=+=+=+=+=+=+=+=+=+=+=+=+=+=+" << endl;
+        cout << "Matrix of Size: " << cur_matrix_dimension << endl << OUPUT_SEPERATOR;
 
         for (int trial = 0; trial < trials; trial++) {
 
@@ -436,6 +440,14 @@ int main(int argc, char* argv[]) {
     int flag = stoi(argv[1]);
     int dimension = stoi(argv[2]);
     string infile = argv[3];
+    
+    if (IN_DEV) {
+        
+        // Simple test cases to make sure nothing has gone totally wrong.
+        testMultiplication(infile, dimension, true);
+        testMultiplication(infile, dimension, false);
+        cout << "Basic Tests Pass. Executing instructions from command line." << endl << OUPUT_SEPERATOR;
+    }
 
     if (flag == 0) {
 
@@ -456,7 +468,7 @@ int main(int argc, char* argv[]) {
 	if (flag == 1) {
 
         // Strassen
-        testMultiplication(infile, dimension);
+        testMultiplication(infile, dimension, true);
         return 0;
     }
 

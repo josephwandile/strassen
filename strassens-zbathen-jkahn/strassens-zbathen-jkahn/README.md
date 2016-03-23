@@ -13,6 +13,7 @@
 * Separate functions by two lines
 * Block off logical sections of code with descriptive comments
 * `pointer*`, rather than `pointer *`
+* When writing code which has different behavior for Strassen's vs. traditional multiplication use the variable `bool using_strassen`
 
 ## TODOs
 
