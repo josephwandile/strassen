@@ -14,22 +14,8 @@
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "68"
-            endingLineNumber = "68">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            shouldBeEnabled = "No"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "strassens-zbathen-jkahn/main.cpp"
-            timestampString = "480387924.087283"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "132"
-            endingLineNumber = "132"
-            landmarkName = "trad_mult(Matrix* l_matrix, Matrix* r_matrix)"
+            endingLineNumber = "68"
+            landmarkName = "populate_matrix(Matrix* matrix, string infile, int position, int dimension)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
