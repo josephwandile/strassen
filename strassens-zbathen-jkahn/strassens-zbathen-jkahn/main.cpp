@@ -4,6 +4,7 @@
 #include <vector>
 #include <stdexcept>
 #include <iomanip>
+#include <assert.h>
 
 using namespace std;
 const int CUTOFF = 1;
@@ -301,12 +302,41 @@ Matrix * strassenmult(Matrix* mata, Matrix* matb, int dimension) {
 
 /*
  
+ TESTING
+ 
+ */
+
+// Assumes left_matrix
+bool matrices_are_equal(Matrix* A, Matrix* B) {
+    
+    bool are_equal = true;
+    
+    if (A->dimension != B->dimension) {
+        return false;
+    }
+    
+    int dimension = A->dimension;
+    
+    int i, j;
+    
+    for (i = 0; i < dimension; i++) {
+        for (j = 0; j < dimension; j++) {
+            
+            if (A->entries[i][j] != B->entries[i][j]) {
+                return false;
+            }
+        }
+    }
+    return are_equal;
+}
+
+/*
+ 
  PROGRAM INTERFACE 
  
  */
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
 	// check to ensure correct number of arguments
 	if (argc != 4) {
         cout << "Please enter the correct number of arguments" << endl;
@@ -317,24 +347,50 @@ int main(int argc, char* argv[])
     int dimension = stoi(argv[2]);
     string infile = argv[3];
     
-	// TEST CODE
-	if (flag == 1) {
-        cout << "Run test suite 1" << endl;
+    if (flag == 0) {
         
-        // TODO Write test function for matrix equivalency
-	}
+        Matrix* A = build_matrix(infile, 0, dimension, true);
+        
+        /*
+         The second parameter determines where to start reading in from the text file.
+         
+         The last parameter refers to the fact that this is a "right_matrix"-- basically that it is
+         an array of columns instead of rows, which yields improved caching performance during matrix multiplication.
+         */
+        Matrix* B = build_matrix(infile, dimension*dimension, dimension, false);
+        
+        Matrix* C = trad_mult(A,B);
+        print_formatted_matrix(C);
+    }
     
-    Matrix* A = build_matrix(infile, 0, dimension, true);
+	if (flag == 1) {
+        cout << "Testing Traditional Multiplication" << endl;
+        
+        Matrix* A = build_matrix(infile, 0, dimension, true);
+        Matrix* B = build_matrix(infile, dimension*dimension, dimension, false);
+        Matrix* C = trad_mult(A,B);
     
-    /*
-     The second parameter determines where to start reading in from the text file.
-     
-     The last parameter refers to the fact that this is a "right_matrix"-- basically that it is
-     an array of columns instead of rows, which yields improved caching performance during matrix multiplication.
-     */
-    Matrix* B = build_matrix(infile, dimension*dimension, dimension, false);
+        // Left matrix built from test files
+        Matrix* correct_C = build_matrix(infile, dimension*dimension*2, dimension, true);
+        
+        assert(matrices_are_equal(correct_C, C));
+        
+        return 0;
+    }
+    
+    if (flag == 2) {
+        cout << "Testing Strassen's Multiplication" << endl;
+        
+        Matrix* A = build_matrix(infile, 0, dimension, true);
+        Matrix* B = build_matrix(infile, dimension*dimension, dimension, false);
+        Matrix* C = strassenmult(A, B, dimension);
+        
+        // Left matrix built from test files
+        Matrix* correct_C = build_matrix(infile, dimension*dimension*2, dimension, true);
+        
+        assert(matrices_are_equal(correct_C, C));
+        
+        return 0;
 
-    Matrix* C = trad_mult(A,B);
-    print_formatted_matrix(C);
-	print_formatted_matrix(strassenmult(A, B, 2));
+    }
 }

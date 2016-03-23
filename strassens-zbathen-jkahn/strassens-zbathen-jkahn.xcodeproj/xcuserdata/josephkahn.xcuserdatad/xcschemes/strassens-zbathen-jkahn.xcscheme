@@ -65,11 +65,15 @@
       <CommandLineArguments>
          <CommandLineArgument
             argument = "0 2 test2d.txt"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 2 test.txt"
             isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "1 2 test.txt"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "0 4 test4d.txt"
