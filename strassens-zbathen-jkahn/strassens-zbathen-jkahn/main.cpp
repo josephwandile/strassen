@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <stdexcept>
+#include <iomanip>
 
 using namespace std;
 const int CUTOFF = 1;
@@ -92,13 +93,16 @@ void print_formatted_matrix(Matrix* matrix) {
     } else {
         cout << "Printing Right Matrix" << endl;
     }
-    int row, col;
+    int row, col, entry;
+    string entry_as_str;
     for (row = 0; row < matrix->dimension; row++) {
         for (col = 0; col < matrix->dimension; col++) {
             if (is_left_matrix) {
-                cout << matrix->entries[row][col] << "  ";
+                entry = matrix->entries[row][col];
+                cout << setw(5) << entry;
             } else {
-                cout << matrix->entries[col][row] << "  ";
+                entry = matrix->entries[col][row];
+                cout << setw(5) <<  entry;
             }
         }
         cout << endl;
@@ -332,5 +336,5 @@ int main(int argc, char* argv[])
 
     Matrix* C = trad_mult(A,B);
     print_formatted_matrix(C);
-//	print_formatted_matrix(strassenmult(A, B, 2));
+	print_formatted_matrix(strassenmult(A, B, 2));
 }
