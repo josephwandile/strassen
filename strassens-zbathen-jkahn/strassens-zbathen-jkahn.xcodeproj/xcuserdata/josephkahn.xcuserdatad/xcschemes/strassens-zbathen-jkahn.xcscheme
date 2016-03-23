@@ -69,6 +69,10 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "2 4 test4d.txt"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "4 4 test4d.txt"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument

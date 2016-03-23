@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <iomanip>
 #include <assert.h>
-//#include <ctime>
+#include <ctime>
 
 using namespace std;
 const int CUTOFF = 1;
@@ -338,38 +338,64 @@ bool matrices_are_equal(Matrix* A, Matrix* B) {
     return are_equal;
 }
 
-// TODO Incremental values of n output to a txt file, separate by tabs or commas for excel analysis
-void timing_utility(string infile, int dimension, int trials, bool normal_mult=true) {
+// TODO Ouput averages of multiplication for each dimension to txt file
+// TODO Do this with random matrix
+void timing_utility(string infile, int lower_bound, int upper_bound, int trials, bool normal_mult=true) {
     
-    int total_construct_time = 0;
-    int total_mult_time = 0;
-    int avg_construct_time = 0;
-    int avg_mult_time = 0;
+    int cur_matrix_dimension;
     
-    for (int trial = 0; trial < trials; trial++) {
-        
-        clock_t construct_start = clock();
-        Matrix* A = build_matrix(infile, 0, dimension, true);
-        Matrix* B = build_matrix(infile, dimension*dimension, dimension, false);
-        double construct_total = (clock() - construct_start) / (double)(CLOCKS_PER_SEC);
-        cout << "Time for Matrix Construction:    " << construct_total << "s" << endl;
-        total_construct_time += construct_total;
+    if (normal_mult) {
+        cout << "Normal Multiplication" << endl;
+    } else {
+        cout << "Optimized Strassen" << endl;
+    }
 
-        clock_t mult_start = clock();
-        Matrix* C;
-        if (normal_mult) {
-            C = trad_mult(A,B);
-        } else {
-            C = strassenmult(A,B, dimension);
+    for (cur_matrix_dimension = lower_bound; cur_matrix_dimension <= upper_bound; cur_matrix_dimension++) {
+    
+        double total_construct_time = 0;
+        double total_mult_time = 0;
+        double avg_construct_time = 0;
+        double avg_mult_time = 0;
+        
+        cout << "Matrix of Size: " << cur_matrix_dimension << endl << "+=+=+=+=+=+=+=+=+=+=+=+=+=+=+" << endl;
+        
+        for (int trial = 0; trial < trials; trial++) {
+            
+            clock_t construct_start = clock();
+            Matrix* A = build_matrix(infile, 0, cur_matrix_dimension, true);
+            Matrix* B = build_matrix(infile, cur_matrix_dimension*cur_matrix_dimension, cur_matrix_dimension, false);
+            double construct_total = (clock() - construct_start) / (double)(CLOCKS_PER_SEC);
+            cout << construct_total << "s" << " for construction during trial " << trial << endl;
+            total_construct_time += construct_total;
+            
+            clock_t mult_start = clock();
+            Matrix* C;
+            if (normal_mult) {
+                C = trad_mult(A,B);
+            } else {
+                C = strassenmult(A,B, cur_matrix_dimension);
+            }
+            
+            double mult_total = (clock() - mult_start) / (double)(CLOCKS_PER_SEC);
+            cout << mult_total << "s" << " for multiplication during trial " << trial << endl;
+            total_mult_time += mult_total;
         }
         
-        double mult_total = (clock() - mult_start) / (double)(CLOCKS_PER_SEC);
-        cout << "Time for Mult:    " << mult_total << "s" << endl;
-        total_mult_time += mult_total;
+        avg_mult_time = total_mult_time / trials;
+        avg_construct_time = total_construct_time / trials;
+        
+        
+        cout << "Average Time for Construction:    " << avg_construct_time << endl << "Average Time for Mult:    " << avg_mult_time << endl;
     }
+}
+
+Matrix* generate_random_matrix(int dimension) {
     
-    avg_mult_time = total_mult_time / trials;
-    avg_construct_time = total_construct_time / trials;
+    Matrix* matrix = instantiate_matrix(dimension);
+    
+    // TODO sample from -1,0,1,2
+    
+    return matrix;
 }
 
 /*
@@ -436,10 +462,9 @@ int main(int argc, char* argv[]) {
         print_formatted_matrix(C);
         print_formatted_matrix(correct_C);
         
-//        assert(matrices_are_equal(correct_C, C));
+        assert(matrices_are_equal(correct_C, C));
         
         return 0;
-
     }
     
     if (flag == 3) {
@@ -448,13 +473,8 @@ int main(int argc, char* argv[]) {
     }
     
     if (flag == 4) {
-        
-        cout << "Generating Time Data for Trad Mult" << endl;
-        
+        timing_utility(infile, dimension, dimension, 5);
     }
     
-    if (flag == 5) {
-        
-        cout << "Generating Time Data for Strassen Mult" << endl;
-    }
+    if (flag == 5) {}
 }
