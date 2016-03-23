@@ -17,9 +17,9 @@ using namespace std;
 const int CUTOFF = 1;
 
 /*
- 
+
  Definition of Matrix as well as utility functions for generating, populating, and printing them.
- 
+
  */
 
 // Basic Matrix struct
@@ -29,32 +29,32 @@ typedef struct Matrix {
     vector<vector<int>> entries;
 } Matrix;
 
-Matrix* instantiate_matrix(int dimension, bool left_matrix=true) {
+Matrix* instantiateMatrix(int dimension, bool left_matrix=true) {
 
     Matrix* matrix = new Matrix();
-    
+
     matrix->left_matrix = left_matrix;
     matrix->dimension = dimension;
-    
+
     vector<vector<int>> entries(dimension, vector<int>(dimension));
     matrix->entries = entries;
-    
+
     return matrix;
 }
 
 // Does the actual IO work for populating matrices
-void populate_matrix(Matrix* matrix, string infile, int position, int dimension) {
-    
+void populateMatrix(Matrix* matrix, string infile, int position, int dimension) {
+
     ifstream inputfile(infile);
     string element = "";
-    
+
     if (inputfile.is_open()) {
-        
+
         // Skips to the appropriate line
         for (int i = 0; i < position; i++){
             getline(inputfile, element);
         }
-        
+
         for (int row = 0; row < dimension; row++) {
             for (int col = 0; col < dimension; col++) {
                 if (getline(inputfile, element)) {
@@ -76,29 +76,29 @@ void populate_matrix(Matrix* matrix, string infile, int position, int dimension)
 }
 
 // Instantiates and populates a matrix from a specific point in the input file
-Matrix* build_matrix(string infile, int position, int dimension, bool left_matrix=true) {
-    
-    Matrix* matrix = instantiate_matrix(dimension, left_matrix);
-    populate_matrix(matrix, infile, position, dimension);
+Matrix* buildMatrix(string infile, int position, int dimension, bool left_matrix=true) {
+
+    Matrix* matrix = instantiateMatrix(dimension, left_matrix);
+    populateMatrix(matrix, infile, position, dimension);
     return matrix;
 }
 
 // Required format for assignment output
-void print_matrix(Matrix* matrix, bool printing_diagonal=true) {
-    
+void printMatrix(Matrix* matrix, bool printing_diagonal=true) {
+
     if (printing_diagonal) {
-        
+
         cout << "Matrix Diagonal" << endl;
         for (int i = 0; i < matrix->dimension; i++) {
             cout << matrix->entries[i][i] << endl;
         }
         // Trailing newline
         cout << "\n";
-        
+
     } else {
-        
+
         bool is_left_matrix = matrix->left_matrix;
-        
+
         if (is_left_matrix){
             cout << "Formatted Left Matrix" << endl;
         } else {
@@ -121,27 +121,28 @@ void print_matrix(Matrix* matrix, bool printing_diagonal=true) {
     }
 }
 
-/* 
- 
+/*
+
  TRADITIONAL MATRIX MULT
- Optimized for cache performance.
- 
+ With option for optimized for cache performance
+ (not used to avoid unecessary complexity)
+
  */
 
 // mutiplies matrices mat1 and mat2 traditionally
-Matrix* trad_mult(Matrix* l_matrix, Matrix* r_matrix) {
-    
+Matrix* tradMult(Matrix* l_matrix, Matrix* r_matrix) {
+
     if (l_matrix->dimension != r_matrix->dimension) {
         throw invalid_argument("Function only multiplies square matrices.");
     }
-    
+
     int dimension = l_matrix->dimension;
 
     // Always outputs a matrix in standard form (i.e. Matrix[rows][cols])
-    Matrix* ansmat = instantiate_matrix(dimension);
-    
+    Matrix* ans_mat = instantiateMatrix(dimension);
+
     int i, j, r, cur_dot_prod;
-    
+
     // If matrix on RHS is in transposed form, optimize cache use
     if (!r_matrix->left_matrix) {
         for (r = 0; r < dimension; r++) {
@@ -150,10 +151,10 @@ Matrix* trad_mult(Matrix* l_matrix, Matrix* r_matrix) {
                 for (j = 0; j < dimension; j++) {
                     cur_dot_prod += l_matrix->entries[i][j] * r_matrix->entries[r][j];
                 }
-                ansmat->entries[i][r] = cur_dot_prod;
+                ans_mat->entries[i][r] = cur_dot_prod;
             }
         }
-        
+
     // Standard matrix multiplication if both are in standard form
     } else {
         for (r = 0; r < dimension; r++) {
@@ -162,24 +163,24 @@ Matrix* trad_mult(Matrix* l_matrix, Matrix* r_matrix) {
                 for (j = 0; j < dimension; j++) {
                     cur_dot_prod += l_matrix->entries[i][j] * r_matrix->entries[j][r];
                 }
-                ansmat->entries[i][r] = cur_dot_prod;
+                ans_mat->entries[i][r] = cur_dot_prod;
             }
         }
 
     }
-    
-	return ansmat;
+
+	return ans_mat;
 }
 
-/* 
- 
+/*
+
  STRASSEN'S METHOD
- 
+
  */
 
 // given matrix, distance from left and distance from top of both parts, and dimension of output matrix, returns sum
-Matrix * ref_arith(Matrix * refmat, int leftref1, int downref1, int leftref2, int downref2, int dimension, bool add) {
-	Matrix * ans_mat = instantiate_matrix(dimension);
+Matrix* refArith(Matrix* refmat, int leftref1, int downref1, int leftref2, int downref2, int dimension, bool add) {
+	Matrix* ans_mat = instantiateMatrix(dimension);
 	if (add) {
 		for (int row = 0; row < dimension; row++) {
 			for (int col = 0; col < dimension; col++) {
@@ -198,8 +199,8 @@ Matrix * ref_arith(Matrix * refmat, int leftref1, int downref1, int leftref2, in
 }
 
 
-Matrix * ref_return(Matrix * refmat, int leftref, int downref, int dimension) {
-	Matrix * ans_mat = instantiate_matrix(dimension);
+Matrix* refReturn(Matrix* refmat, int leftref, int downref, int dimension) {
+	Matrix* ans_mat = instantiateMatrix(dimension);
 	for (int row = 0; row < dimension; row++) {
 		for (int col = 0; col < dimension; col++) {
 			ans_mat->entries[row][col] = refmat->entries[downref + row][leftref + col];
@@ -207,49 +208,47 @@ Matrix * ref_return(Matrix * refmat, int leftref, int downref, int dimension) {
 	}
 	return ans_mat;
 }
-// multiplies matrices using strassen's method
-Matrix * strassenmult(Matrix* mata, Matrix* matb, int dimension) {
-	
+
+
+Matrix* strassenMult(Matrix* mata, Matrix* matb, int dimension) {
+
 	if (dimension <= CUTOFF){
-		return trad_mult(mata, matb);
+		return tradMult(mata, matb);
 	} else {
 
         // TODO make even more modular
         // TODO need to pass in references to initial matrices for inline strass
 
-        
+		Matrix* m1a = refArith(mata, 0, 0, dimension / 2, dimension / 2, dimension / 2, true);
+		Matrix* m1b = refArith(matb, 0, 0, dimension / 2, dimension / 2, dimension / 2, true);
+		Matrix* m1 = strassenMult(m1a, m1b, dimension / 2);
 
-		Matrix * m1a = ref_arith(mata, 0, 0, dimension / 2, dimension / 2, dimension / 2, true);
-		Matrix * m1b = ref_arith(matb, 0, 0, dimension / 2, dimension / 2, dimension / 2, true);
-		Matrix * m1 = strassenmult(m1a, m1b, dimension / 2);
+		Matrix* m2a = refArith(mata, 0, dimension / 2, dimension / 2, dimension / 2, dimension / 2, true);
+		Matrix* m2b = refReturn(matb, 0, 0, dimension / 2);
+		Matrix* m2 = strassenMult(m2a, m2b, dimension / 2);
 
-		Matrix * m2a = ref_arith(mata, 0, dimension / 2, dimension / 2, dimension / 2, dimension / 2, true);
-		Matrix * m2b = ref_return(matb, 0, 0, dimension / 2);
-		Matrix * m2 = strassenmult(m2a, m2b, dimension / 2);
+		Matrix* m3a = refReturn(mata, 0, 0, dimension / 2);
+		Matrix* m3b = refArith(matb, dimension / 2, 0, dimension / 2, dimension / 2, dimension / 2, false);
+		Matrix* m3 = strassenMult(m3a, m3b, dimension / 2);
 
-		Matrix * m3a = ref_return(mata, 0, 0, dimension / 2);
-		Matrix * m3b = ref_arith(matb, dimension / 2, 0, dimension / 2, dimension / 2, dimension / 2, false);
-		Matrix * m3 = strassenmult(m3a, m3b, dimension / 2);
+		Matrix* m4a = refReturn(mata, dimension / 2, dimension / 2, dimension / 2);
+		Matrix* m4b = refArith(matb, 0, dimension / 2, 0, 0, dimension / 2, false);
+		Matrix* m4 = strassenMult(m4a, m4b, dimension / 2);
 
-		Matrix * m4a = ref_return(mata, dimension / 2, dimension / 2, dimension / 2);
-		Matrix * m4b = ref_arith(matb, 0, dimension / 2, 0, 0, dimension / 2, false);
-		Matrix * m4 = strassenmult(m4a, m4b, dimension / 2);
+		Matrix* m5a = refArith(mata, 0, 0, dimension / 2, 0, dimension / 2, true);
+		Matrix* m5b = refReturn(matb, dimension / 2, dimension / 2, dimension / 2);
+		Matrix* m5 = strassenMult(m5a, m5b, dimension / 2);
 
-		Matrix * m5a = ref_arith(mata, 0, 0, dimension / 2, 0, dimension / 2, true);
-		Matrix * m5b = ref_return(matb, dimension / 2, dimension / 2, dimension / 2);
-		Matrix * m5 = strassenmult(m5a, m5b, dimension / 2);
+		Matrix* m6a = refArith(mata, 0, dimension / 2, 0, 0, dimension / 2, false);
+		Matrix* m6b = refArith(matb, 0, 0, dimension / 2, 0, dimension / 2, true);
+		Matrix* m6 = strassenMult(m6a, m6b, dimension / 2);
 
-		Matrix * m6a = ref_arith(mata, 0, dimension / 2, 0, 0, dimension / 2, false);
-		Matrix * m6b = ref_arith(matb, 0, 0, dimension / 2, 0, dimension / 2, true);
-		Matrix * m6 = strassenmult(m6a, m6b, dimension / 2);
-
-		Matrix * m7a = ref_arith(mata, dimension / 2, 0, dimension / 2, dimension / 2, dimension / 2, false);
-		Matrix * m7b = ref_arith(matb, 0, dimension / 2, dimension / 2, dimension / 2, dimension / 2, true);
-		Matrix * m7 = strassenmult(m7a, m7b, dimension / 2);
+		Matrix* m7a = refArith(mata, dimension / 2, 0, dimension / 2, dimension / 2, dimension / 2, false);
+		Matrix* m7b = refArith(matb, 0, dimension / 2, dimension / 2, dimension / 2, dimension / 2, true);
+		Matrix* m7 = strassenMult(m7a, m7b, dimension / 2);
 
 		// fill answer matrix using found m matrices
-		Matrix * ans_mat = instantiate_matrix(dimension);
-        
+		Matrix* ans_mat = instantiateMatrix(dimension);
 
 		// c11 = m1 + m4 - m5 + m7
 		for (int col = 0; col < dimension / 2; col++) {
@@ -286,27 +285,27 @@ Matrix * strassenmult(Matrix* mata, Matrix* matb, int dimension) {
 }
 
 /*
- 
+
  TESTING
- 
+
  */
 
 // Assumes left_matrix
-bool matrices_are_equal(Matrix* A, Matrix* B) {
-    
+bool matricesAreEqual(Matrix* A, Matrix* B) {
+
     bool are_equal = true;
-    
+
     if (A->dimension != B->dimension) {
         return false;
     }
-    
+
     int dimension = A->dimension;
-    
+
     int i, j;
-    
+
     for (i = 0; i < dimension; i++) {
         for (j = 0; j < dimension; j++) {
-            
+
             if (A->entries[i][j] != B->entries[i][j]) {
                 return false;
             }
@@ -316,36 +315,36 @@ bool matrices_are_equal(Matrix* A, Matrix* B) {
 }
 
 // TODO extend to allow for random matrix testing
-void test_multiplication(string infile, int dimension, bool using_strassen=true, bool use_random_matrices=true) {
-    
-    Matrix* A = build_matrix(infile, 0, dimension);
-    Matrix* B = build_matrix(infile, dimension*dimension, dimension);
+void testMultiplication(string infile, int dimension, bool using_strassen=true, bool use_random_matrices=true) {
+
+    Matrix* A = buildMatrix(infile, 0, dimension);
+    Matrix* B = buildMatrix(infile, dimension*dimension, dimension);
     Matrix* C;
-    
+
     if (using_strassen) {
         cout << "Testing Strassen" << endl;
-        C = strassenmult(A,B, dimension);
+        C = strassenMult(A,B, dimension);
     } else {
         cout << "Testing Traditional Mult" << endl;
-        C = trad_mult(A,B);
+        C = tradMult(A,B);
     }
-    
-    // Left matrix built from test files
-    Matrix* correct_C = build_matrix(infile, dimension*dimension*2, dimension);
 
-    assert(matrices_are_equal(correct_C, C));
-    
-    print_matrix(C);
-    print_matrix(correct_C);
+    // Left matrix built from test files
+    Matrix* correct_C = buildMatrix(infile, dimension*dimension*2, dimension);
+
+    assert(matricesAreEqual(correct_C, C));
+
+    printMatrix(C);
+    printMatrix(correct_C);
 }
 
-// TODO Ouput averages of multiplication for each dimension to txt file
+// TODO Should be able to more precisely define range for testing
 // TODO Do this with random matrix
-void timing_utility(string infile, int lower_bound, int upper_bound, int trials, bool using_strassen=true) {
-    
+void timingUtility(string infile, int lower_bound, int upper_bound, int trials, bool using_strassen=true) {
+
     int cur_matrix_dimension;
     string file_name;
-    
+
     if (using_strassen) {
         cout << "Strassen" << endl;
         file_name = "strassen_";
@@ -353,78 +352,78 @@ void timing_utility(string infile, int lower_bound, int upper_bound, int trials,
         cout << "Traditional" << endl;
         file_name = "traditional_";
     }
-    
+
     // Build ouput file name
     file_name += to_string(lower_bound) + "_" + to_string(upper_bound) + "_" + to_string(trials) + ".txt";
     ofstream output_file;
     output_file.open(file_name);
 
     for (cur_matrix_dimension = lower_bound; cur_matrix_dimension <= upper_bound; cur_matrix_dimension++) {
-    
+
         double total_construct_time = 0;
         double total_mult_time = 0;
         double avg_construct_time = 0;
         double avg_mult_time = 0;
-        
+
         cout << "Matrix of Size: " << cur_matrix_dimension << endl << "+=+=+=+=+=+=+=+=+=+=+=+=+=+=+" << endl;
-        
+
         for (int trial = 0; trial < trials; trial++) {
-            
+
             clock_t construct_start = clock();
-            Matrix* A = build_matrix(infile, 0, cur_matrix_dimension, true);
-            Matrix* B = build_matrix(infile, cur_matrix_dimension*cur_matrix_dimension, cur_matrix_dimension, false);
+            Matrix* A = buildMatrix(infile, 0, cur_matrix_dimension, true);
+            Matrix* B = buildMatrix(infile, cur_matrix_dimension*cur_matrix_dimension, cur_matrix_dimension, false);
             double construct_total = (clock() - construct_start) / (double)(CLOCKS_PER_SEC);
             total_construct_time += construct_total;
-            
+
             clock_t mult_start = clock();
             Matrix* C;
             if (using_strassen) {
-                C = strassenmult(A,B, cur_matrix_dimension);
+                C = strassenMult(A,B, cur_matrix_dimension);
             } else {
-                C = trad_mult(A,B);
+                C = tradMult(A,B);
             }
-            
+
             double mult_total = (clock() - mult_start) / (double)(CLOCKS_PER_SEC);
             total_mult_time += mult_total;
-            
+
 //            cout << construct_total << "s" << " for construction during trial " << trial << endl;
 //            cout << mult_total << "s" << " for multiplication during trial " << trial << endl;
         }
-        
+
         avg_mult_time = total_mult_time / trials;
         avg_construct_time = total_construct_time / trials;
-        
+
         cout << "Average Time for Construction:    " << avg_construct_time << endl << "Average Time for Mult:    " << avg_mult_time << endl;
         output_file << cur_matrix_dimension << "\t" << avg_mult_time << endl;
     }
-    
+
     output_file.close();
 }
 
-Matrix* generate_random_matrix(int dimension) {
-    
+Matrix* genRandMatrix(int dimension) {
+
     int min = -1;
     int max = 2;
     int output, i, j;
-    
-    Matrix* matrix = instantiate_matrix(dimension);
-    
+
+    Matrix* matrix = instantiateMatrix(dimension);
+
     for (i = 0; i < dimension; i++) {
         for (j=0; j < dimension; j++) {
-            
+
             output = min + (rand() % (int)(max - min + 1));
 
             // TODO seed random num generator and build matrix
-            
+
         }
     }
     return matrix;
 }
 
 /*
- 
+
  PROGRAM INTERFACE
- 
+
  */
 
 int main(int argc, char* argv[]) {
@@ -433,55 +432,55 @@ int main(int argc, char* argv[]) {
         cout << "Please enter the correct number of arguments" << endl;
 		return -1;
 	}
-	
+
     int flag = stoi(argv[1]);
     int dimension = stoi(argv[2]);
     string infile = argv[3];
-    
+
     if (flag == 0) {
-        
-        Matrix* A = build_matrix(infile, 0, dimension, true);
-        
+
+        Matrix* A = buildMatrix(infile, 0, dimension, true);
+
         /*
          The second parameter determines where to start reading in from the text file.
-         
+
          The last parameter refers to the fact that this is a "right_matrix"-- basically that it is
          an array of columns instead of rows, which yields improved caching performance during matrix multiplication.
          */
-        Matrix* B = build_matrix(infile, dimension*dimension, dimension, false);
-        
-        Matrix* C = trad_mult(A,B);
-        print_matrix(C);
+        Matrix* B = buildMatrix(infile, dimension*dimension, dimension, false);
+
+        Matrix* C = tradMult(A,B);
+        printMatrix(C);
     }
-    
+
 	if (flag == 1) {
-        
+
         // Strassen
-        test_multiplication(infile, dimension);
+        testMultiplication(infile, dimension);
         return 0;
     }
-    
+
     if (flag == 2) {
-       
+
         // Normal
-        test_multiplication(infile, dimension, false);
+        testMultiplication(infile, dimension, false);
         return 0;
     }
-    
+
     if (flag == 3) {
-        
+
         cout << "Testing Cache-optimized Traditional Mult" << endl;
     }
-    
+
     if (flag == 4) {
-        
+
         // Strassen
-        timing_utility(infile, dimension, dimension, 5);
+        timingUtility(infile, dimension, dimension, 5);
     }
-    
+
     if (flag == 5) {
-        
+
         // Traditional
-        timing_utility(infile, dimension, dimension, 5, false);
+        timingUtility(infile, dimension, dimension, 5, false);
     }
 }
