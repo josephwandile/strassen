@@ -85,11 +85,12 @@ void printMatrix(Matrix* matrix, bool printing_diagonal=true) {
 
     if (printing_diagonal) {
 
-        cout << "Matrix Diagonal" << endl;
+        if (IN_DEV) {
+            cout << "Matrix Diagonal" << endl;
+        }
         for (int i = 0; i < matrix->dimension; i++) {
             cout << matrix->entries[i][i] << endl;
         }
-        // Trailing newline
         cout << "\n";
 
     } else {
@@ -107,21 +108,7 @@ void printMatrix(Matrix* matrix, bool printing_diagonal=true) {
     }
 }
 
-/*
 
- TRADITIONAL MATRIX MULT
-
- We experimented with representing the r_matrix in a transposed form
- (i.e. r_matrix[col][row]) to improve cache performance, but in the end
- found that it complicated the code significantly when implemeting Strassen's
- in-line.
-
- In the trade-off between simplicity and speed we felt simplicty had a larger
- net benefit in this instance.
-
- */
-
-// mutiplies matrices mat1 and mat2 traditionally
 Matrix* tradMult(Matrix* l_matrix, Matrix* r_matrix) {
 
     if (l_matrix->dimension != r_matrix->dimension) {
@@ -135,7 +122,6 @@ Matrix* tradMult(Matrix* l_matrix, Matrix* r_matrix) {
 
     int i, j, k;
 
-
     /*
 
      Indices carefully chosen to improve cache performance. Note that the innermost loop only jumps
@@ -143,7 +129,7 @@ Matrix* tradMult(Matrix* l_matrix, Matrix* r_matrix) {
 
      Performance difference on PC?
 
-     73.47 seconds to multiply matrices of dimension = 2048 without cache optization.
+     73.4703 seconds to multiply matrices of dimension = 2048 without cache optization.
 
      vs.
 
@@ -154,7 +140,6 @@ Matrix* tradMult(Matrix* l_matrix, Matrix* r_matrix) {
         for (j = 0; j < dimension; j++) { // Cols
             for (k = 0; k < dimension; k++) { // Iterator
                 ans_mat->entries[i][k] += l_matrix->entries[i][j] * r_matrix->entries[j][k];
-//                cout << i << "," << j << " in A * " << j << "," << k << " in B " << "added to " << i << "," << k << " in C" << endl;
             }
         }
     }
@@ -168,19 +153,19 @@ Matrix* tradMult(Matrix* l_matrix, Matrix* r_matrix) {
  */
 
 // given matrix, distance from left and distance from top of both parts, and dimension of output matrix, returns sum
-Matrix* refArith(Matrix* refmat, int leftref1, int downref1, int leftref2, int downref2, int dimension, bool add) {
+Matrix* combineSubmatrices(Matrix* refmat, int j_1, int i_1, int j_2, int i_2, int dimension, bool add) {
 	Matrix* ans_mat = instantiateMatrix(dimension);
 	if (add) {
 		for (int row = 0; row < dimension; row++) {
 			for (int col = 0; col < dimension; col++) {
-				ans_mat->entries[row][col] = refmat->entries[downref1 + row][leftref1 + col] + refmat->entries[downref2 + row][leftref2 + col];
+				ans_mat->entries[row][col] = refmat->entries[i_1 + row][j_1 + col] + refmat->entries[i_2 + row][j_2 + col];
 			}
 		}
 	} else
 	{
 		for (int row = 0; row < dimension; row++) {
 			for (int col = 0; col < dimension; col++) {
-				ans_mat->entries[row][col] = refmat->entries[downref1 + row][leftref1 + col] - refmat->entries[downref2 + row][leftref2 + col];
+				ans_mat->entries[row][col] = refmat->entries[i_1 + row][j_1 + col] - refmat->entries[i_2 + row][j_2 + col];
 			}
 		}
 	}
@@ -188,15 +173,62 @@ Matrix* refArith(Matrix* refmat, int leftref1, int downref1, int leftref2, int d
 }
 
 
-Matrix* refReturn(Matrix* refmat, int leftref, int downref, int dimension) {
+Matrix* extractSubmatrix(Matrix* refmat, int j, int i, int dimension) {
 	Matrix* ans_mat = instantiateMatrix(dimension);
 	for (int row = 0; row < dimension; row++) {
 		for (int col = 0; col < dimension; col++) {
-			ans_mat->entries[row][col] = refmat->entries[downref + row][leftref + col];
+			ans_mat->entries[row][col] = refmat->entries[i + row][j + col];
 		}
 	}
 	return ans_mat;
 }
+
+
+// Inserts the return value of strassenMult into auxiliary matrix
+void updateAuxMatrix(Matrix* P_aux, Matrix* P_new) {
+
+    /*
+     We only ever need to look at some square matrix in the
+     upper right corner of P_aux, so adjust dimension accordingly
+     */
+    P_aux->dimension = P_new->dimension;
+
+    for (int i = 0; i < P_new->dimension; i++) {
+        for (int j = 0; j < P_new->dimension; i++) {
+            P_aux->entries[i][j] = P_new->entries[i][j];
+        }
+    }
+}
+
+
+void modifySubmatrix(Matrix* C, Matrix* P, int i, int j, bool adding=true) {
+
+    int row, col;
+
+    if (adding) {
+
+        for (row = 0; row < P->dimension; row++) {
+            for (col = 0; col < P->dimension; col++) {
+                C->entries[i + row][j + col] += P->entries[row][col];
+            }
+        }
+
+    } else {
+
+        for (row = 0; row < P->dimension; row++) {
+            for (col = 0; col < P->dimension; col++) {
+                C->entries[i + row][j + col] -= P->entries[row][col];
+            }
+        }
+    }
+}
+
+
+// Hardcoded to deal with Strassen's messiness
+void modifyC(Matrix* C, int P_i) {
+
+}
+
 
 // add a row and a col of zeroes to matrix
 void pad(Matrix* mat, int dimension) {
@@ -225,33 +257,6 @@ void unpad(Matrix* matrix, int dimension) {
 }
 
 
-void modifySubmatrix(Matrix* C, Matrix* P, int i, int j, bool adding=true) {
-
-    int row, col;
-
-    if (adding) {
-
-        for (row = 0; row < P->dimension; row++) {
-            for (col = 0; col < P->dimension; col++) {
-                C->entries[i + row][j + col] += P->entries[row][col];
-            }
-        }
-
-    } else {
-
-        for (row = 0; row < P->dimension; row++) {
-            for (col = 0; col < P->dimension; col++) {
-                C->entries[i + row][j + col] -= P->entries[row][col];
-            }
-        }
-    }
-}
-
-
-void modifyC(Matrix* C, int P_i) {
-
-}
-
 Matrix* strassenMult(Matrix* A, Matrix* B, int dimension) {
 
 	if (dimension <= CUTOFF){
@@ -277,8 +282,8 @@ Matrix* strassenMult(Matrix* A, Matrix* B, int dimension) {
 
         int half_dim = dimension / 2;
 
-		Matrix* m1a = refArith(A, 0, 0, half_dim, half_dim, half_dim, true);
-		Matrix* m1b = refArith(B, 0, 0, half_dim, half_dim, half_dim, true);
+		Matrix* m1a = combineSubmatrices(A, 0, 0, half_dim, half_dim, half_dim, true);
+		Matrix* m1b = combineSubmatrices(B, 0, 0, half_dim, half_dim, half_dim, true);
 		Matrix* m1 = strassenMult(m1a, m1b, half_dim);
 
         modifySubmatrix(C, m1, 0, half_dim); // Add tr
@@ -288,8 +293,8 @@ Matrix* strassenMult(Matrix* A, Matrix* B, int dimension) {
         delete m1b;
         delete m1;
 
-		Matrix* m2a = refArith(A, 0, half_dim, half_dim, half_dim, half_dim, true);
-		Matrix* m2b = refReturn(B, 0, 0, half_dim);
+		Matrix* m2a = combineSubmatrices(A, 0, half_dim, half_dim, half_dim, half_dim, true);
+		Matrix* m2b = extractSubmatrix(B, 0, 0, half_dim);
 		Matrix* m2 = strassenMult(m2a, m2b, half_dim);
 
         modifySubmatrix(C, m2, 0, 0, false); // Subtract tl
@@ -299,8 +304,8 @@ Matrix* strassenMult(Matrix* A, Matrix* B, int dimension) {
         delete m2b;
         delete m2;
 
-		Matrix* m3a = refReturn(A, 0, 0, half_dim);
-		Matrix* m3b = refArith(B, half_dim, 0, half_dim, half_dim, half_dim, false);
+		Matrix* m3a = extractSubmatrix(A, 0, 0, half_dim);
+		Matrix* m3b = combineSubmatrices(B, half_dim, 0, half_dim, half_dim, half_dim, false);
 		Matrix* m3 = strassenMult(m3a, m3b, half_dim);
 
         modifySubmatrix(C, m3, half_dim, 0); // Add bl
@@ -310,8 +315,8 @@ Matrix* strassenMult(Matrix* A, Matrix* B, int dimension) {
         delete m3b;
         delete m3;
 
-		Matrix* m4a = refReturn(A, half_dim, half_dim, half_dim);
-		Matrix* m4b = refArith(B, 0, half_dim, 0, 0, half_dim, false);
+		Matrix* m4a = extractSubmatrix(A, half_dim, half_dim, half_dim);
+		Matrix* m4b = combineSubmatrices(B, 0, half_dim, 0, 0, half_dim, false);
 		Matrix* m4 = strassenMult(m4a, m4b, half_dim);
 
         modifySubmatrix(C, m4, 0, 0); // Add tl
@@ -321,8 +326,8 @@ Matrix* strassenMult(Matrix* A, Matrix* B, int dimension) {
         delete m4b;
         delete m4;
 
-		Matrix* m5a = refArith(A, 0, 0, half_dim, 0, half_dim, true);
-		Matrix* m5b = refReturn(B, half_dim, half_dim, half_dim);
+		Matrix* m5a = combineSubmatrices(A, 0, 0, half_dim, 0, half_dim, true);
+		Matrix* m5b = extractSubmatrix(B, half_dim, half_dim, half_dim);
 		Matrix* m5 = strassenMult(m5a, m5b, half_dim);
 
         modifySubmatrix(C, m5, 0, 0); // Add tl
@@ -332,8 +337,8 @@ Matrix* strassenMult(Matrix* A, Matrix* B, int dimension) {
         delete m5b;
         delete m5;
 
-		Matrix* m6a = refArith(A, 0, half_dim, 0, 0, half_dim, false);
-		Matrix* m6b = refArith(B, 0, 0, half_dim, 0, half_dim, true);
+		Matrix* m6a = combineSubmatrices(A, 0, half_dim, 0, 0, half_dim, false);
+		Matrix* m6b = combineSubmatrices(B, 0, 0, half_dim, 0, half_dim, true);
 		Matrix* m6 = strassenMult(m6a, m6b, half_dim);
 
         modifySubmatrix(C, m6, 0, 0); // Add tl
@@ -342,8 +347,8 @@ Matrix* strassenMult(Matrix* A, Matrix* B, int dimension) {
         delete m6b;
         delete m6;
 
-		Matrix* m7a = refArith(A, half_dim, 0, half_dim, half_dim, half_dim, false);
-		Matrix* m7b = refArith(B, 0, half_dim, half_dim, half_dim, half_dim, true);
+		Matrix* m7a = combineSubmatrices(A, half_dim, 0, half_dim, half_dim, half_dim, false);
+		Matrix* m7b = combineSubmatrices(B, 0, half_dim, half_dim, half_dim, half_dim, true);
 		Matrix* m7 = strassenMult(m7a, m7b, half_dim);
 
         modifySubmatrix(C, m7, half_dim, half_dim, false); // Subtract br
@@ -586,17 +591,19 @@ int main(int argc, char* argv[]) {
         cout << "Basic Tests Pass. Executing instructions from command line." << endl << OUTPUT_SEPERATOR;
     }
 
-    if (flag == 0) { // Production settings
+    if (flag == 0) { // Production behavior
 
-// TODO Configure for TFs
-//        Matrix* A = buildMatrix(infile, 0, dimension);
-//
-//        // The second parameter determines where to start reading in from the text file.
-//        Matrix* B = buildMatrix(infile, dimension*dimension, dimension);
-//
-//		Matrix* C = tradMult(A,B);
-//        printMatrix(C,false);
+        if (!IN_DEV) {
 
+            // buildMatrix(filename, read_from_position, buffer_length)
+            Matrix* A = buildMatrix(infile, 0, dimension);
+            Matrix* B = buildMatrix(infile, dimension*dimension, dimension);
+        	Matrix* C = strassenMult(A, B, dimension);
+            printMatrix(C);
+            delete A;
+            delete B;
+            delete C;
+        }
         return 0;
     }
 
