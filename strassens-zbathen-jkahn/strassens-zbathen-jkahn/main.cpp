@@ -8,10 +8,6 @@
 #include <ctime>
 #include <random>
 
-
-// TODO func to return two matrices to be multiplied
-
-
 /*
 
  PROGRAM SETUP
@@ -32,16 +28,14 @@ uniform_int_distribution<int> distribution(-1,2);
  */
 // Basic Matrix struct
 typedef struct Matrix {
-    bool left_matrix;
     int dimension;
     vector<vector<int>> entries;
 } Matrix;
 
-Matrix* instantiateMatrix(int dimension, bool left_matrix=true) {
+Matrix* instantiateMatrix(int dimension) {
 
     Matrix* matrix = new Matrix();
 
-    matrix->left_matrix = left_matrix;
     matrix->dimension = dimension;
 
     vector<vector<int>> entries(dimension, vector<int>(dimension));
@@ -66,13 +60,8 @@ void populateMatrix(Matrix* matrix, string infile, int position, int dimension) 
         for (int row = 0; row < dimension; row++) {
             for (int col = 0; col < dimension; col++) {
                 if (getline(inputfile, element)) {
-                    if (matrix->left_matrix) {
-                        matrix->entries[row][col] = stoi(element);
-                        element = "";
-                    } else {
-                        matrix->entries[col][row] = stoi(element);
-                        element = "";
-                    }
+                    matrix->entries[row][col] = stoi(element);
+                    element = "";
                 }
                 else {
                     cout << "File does not contain enough data" << endl;
@@ -84,9 +73,9 @@ void populateMatrix(Matrix* matrix, string infile, int position, int dimension) 
 }
 
 // Instantiates and populates a matrix from a specific point in the input file
-Matrix* buildMatrix(string infile, int position, int dimension, bool left_matrix=true) {
+Matrix* buildMatrix(string infile, int position, int dimension) {
 
-    Matrix* matrix = instantiateMatrix(dimension, left_matrix);
+    Matrix* matrix = instantiateMatrix(dimension);
     populateMatrix(matrix, infile, position, dimension);
     return matrix;
 }
@@ -105,24 +94,13 @@ void printMatrix(Matrix* matrix, bool printing_diagonal=true) {
 
     } else {
 
-        bool is_left_matrix = matrix->left_matrix;
-
-        if (is_left_matrix){
-            cout << "Formatted Left Matrix" << endl;
-        } else {
-            cout << "Formatted Right Matrix" << endl;
-        }
+        cout << "Formatted Matrix" << endl;
         int row, col, entry;
         string entry_as_str;
         for (row = 0; row < matrix->dimension; row++) {
             for (col = 0; col < matrix->dimension; col++) {
-                if (is_left_matrix) {
-                    entry = matrix->entries[row][col];
-                    cout << setw(5) << entry;
-                } else {
-                    entry = matrix->entries[col][row];
-                    cout << setw(5) <<  entry;
-                }
+                entry = matrix->entries[row][col];
+                cout << setw(5) << entry;
             }
             cout << endl;
         }
@@ -132,8 +110,14 @@ void printMatrix(Matrix* matrix, bool printing_diagonal=true) {
 /*
 
  TRADITIONAL MATRIX MULT
- With option for optimized for cache performance
- (not used to avoid unecessary complexity)
+ 
+ We experimented with representing the r_matrix in a transposed form
+ (i.e. r_matrix[col][row]) to improve cache performance, but in the end
+ found that it complicated the code significantly when implemeting Strassen's
+ in-line. 
+ 
+ In the trade-off between simplicity and speed we felt simplicty had a larger 
+ net benefit in this instance.
 
  */
 
@@ -141,7 +125,7 @@ void printMatrix(Matrix* matrix, bool printing_diagonal=true) {
 Matrix* tradMult(Matrix* l_matrix, Matrix* r_matrix) {
 
     if (l_matrix->dimension != r_matrix->dimension) {
-        throw invalid_argument("Function only multiplies square matrices.");
+        throw invalid_argument("tradMult expects square matrices.");
     }
 
     int dimension = l_matrix->dimension;
@@ -150,31 +134,15 @@ Matrix* tradMult(Matrix* l_matrix, Matrix* r_matrix) {
     Matrix* ans_mat = instantiateMatrix(dimension);
 
     int i, j, r, cur_dot_prod;
-
-    // If matrix on RHS is in transposed form, optimize cache use
-    if (!r_matrix->left_matrix) {
-        for (r = 0; r < dimension; r++) {
-            for (i = 0; i < dimension; i++) {
-                cur_dot_prod = 0;
-                for (j = 0; j < dimension; j++) {
-                    cur_dot_prod += l_matrix->entries[i][j] * r_matrix->entries[r][j];
-                }
-                ans_mat->entries[i][r] = cur_dot_prod;
+   
+    for (r = 0; r < dimension; r++) {
+        for (i = 0; i < dimension; i++) {
+            cur_dot_prod = 0;
+            for (j = 0; j < dimension; j++) {
+                cur_dot_prod += l_matrix->entries[i][j] * r_matrix->entries[j][r];
             }
+            ans_mat->entries[i][r] = cur_dot_prod;
         }
-
-    // Standard matrix multiplication if both are in standard form
-    } else {
-        for (r = 0; r < dimension; r++) {
-            for (i = 0; i < dimension; i++) {
-                cur_dot_prod = 0;
-                for (j = 0; j < dimension; j++) {
-                    cur_dot_prod += l_matrix->entries[i][j] * r_matrix->entries[j][r];
-                }
-                ans_mat->entries[i][r] = cur_dot_prod;
-            }
-        }
-
     }
 
 	return ans_mat;
@@ -408,6 +376,7 @@ void timeMatrixFromFile(string infile, int dimension) {
     clock_t mult_start = clock();
     Matrix* C = strassenMult(A,B, dimension);
     double mult_total = (clock() - mult_start) / (double)(CLOCKS_PER_SEC);
+    free(C);
 
     cout << "Construction for matrix of size " << dimension << " took " << construct_total << "s" << endl;
     cout << "Multiplication took " << mult_total << "s" << endl;
@@ -502,15 +471,10 @@ int main(int argc, char* argv[]) {
 
     if (flag == 0) { // Production settings
 
-        Matrix* A = buildMatrix(infile, 0, dimension, true);
+        Matrix* A = buildMatrix(infile, 0, dimension);
 
-        /*
-         The second parameter determines where to start reading in from the text file.
-
-         The last parameter refers to the fact that this is a "right_matrix"-- basically that it is
-         an array of columns instead of rows, which yields improved caching performance during matrix multiplication.
-         */
-        Matrix* B = buildMatrix(infile, dimension*dimension, dimension, false);
+        // The second parameter determines where to start reading in from the text file.
+        Matrix* B = buildMatrix(infile, dimension*dimension, dimension);
 
         Matrix* C = tradMult(A,B);
         printMatrix(C);
