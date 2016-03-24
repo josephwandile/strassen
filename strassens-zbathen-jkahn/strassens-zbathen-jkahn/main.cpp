@@ -8,10 +8,6 @@
 #include <ctime>
 #include <random>
 
-
-// TODO func to return two matrices to be multiplied
-
-
 /*
 
  PROGRAM SETUP
@@ -19,7 +15,7 @@
  */
 using namespace std;
 const int CUTOFF = 1;
-const bool IN_DEV = false;
+const bool IN_DEV = false; // Runs a couple simple tests before executing main commands as a sanity check
 const string OUTPUT_SEPERATOR = "-----------------------------\n\n";
 
 default_random_engine generator;
@@ -32,16 +28,14 @@ uniform_int_distribution<int> distribution(-1,2);
  */
 // Basic Matrix struct
 typedef struct Matrix {
-    bool left_matrix;
     int dimension;
     vector<vector<int>> entries;
 } Matrix;
 
-Matrix* instantiateMatrix(int dimension, bool left_matrix=true) {
+Matrix* instantiateMatrix(int dimension) {
 
     Matrix* matrix = new Matrix();
 
-    matrix->left_matrix = left_matrix;
     matrix->dimension = dimension;
 
     vector<vector<int>> entries(dimension, vector<int>(dimension));
@@ -66,13 +60,8 @@ void populateMatrix(Matrix* matrix, string infile, int position, int dimension) 
         for (int row = 0; row < dimension; row++) {
             for (int col = 0; col < dimension; col++) {
                 if (getline(inputfile, element)) {
-                    if (matrix->left_matrix) {
-                        matrix->entries[row][col] = stoi(element);
-                        element = "";
-                    } else {
-                        matrix->entries[col][row] = stoi(element);
-                        element = "";
-                    }
+                    matrix->entries[row][col] = stoi(element);
+                    element = "";
                 }
                 else {
                     cout << "File does not contain enough data" << endl;
@@ -84,9 +73,9 @@ void populateMatrix(Matrix* matrix, string infile, int position, int dimension) 
 }
 
 // Instantiates and populates a matrix from a specific point in the input file
-Matrix* buildMatrix(string infile, int position, int dimension, bool left_matrix=true) {
+Matrix* buildMatrix(string infile, int position, int dimension) {
 
-    Matrix* matrix = instantiateMatrix(dimension, left_matrix);
+    Matrix* matrix = instantiateMatrix(dimension);
     populateMatrix(matrix, infile, position, dimension);
     return matrix;
 }
@@ -105,24 +94,13 @@ void printMatrix(Matrix* matrix, bool printing_diagonal=true) {
 
     } else {
 
-        bool is_left_matrix = matrix->left_matrix;
-
-        if (is_left_matrix){
-            cout << "Formatted Left Matrix" << endl;
-        } else {
-            cout << "Formatted Right Matrix" << endl;
-        }
+        cout << "Formatted Matrix" << endl;
         int row, col, entry;
         string entry_as_str;
         for (row = 0; row < matrix->dimension; row++) {
             for (col = 0; col < matrix->dimension; col++) {
-                if (is_left_matrix) {
-                    entry = matrix->entries[row][col];
-                    cout << setw(5) << entry;
-                } else {
-                    entry = matrix->entries[col][row];
-                    cout << setw(5) <<  entry;
-                }
+                entry = matrix->entries[row][col];
+                cout << setw(5) << entry;
             }
             cout << endl;
         }
@@ -132,8 +110,14 @@ void printMatrix(Matrix* matrix, bool printing_diagonal=true) {
 /*
 
  TRADITIONAL MATRIX MULT
- With option for optimized for cache performance
- (not used to avoid unecessary complexity)
+
+ We experimented with representing the r_matrix in a transposed form
+ (i.e. r_matrix[col][row]) to improve cache performance, but in the end
+ found that it complicated the code significantly when implemeting Strassen's
+ in-line.
+
+ In the trade-off between simplicity and speed we felt simplicty had a larger
+ net benefit in this instance.
 
  */
 
@@ -141,7 +125,7 @@ void printMatrix(Matrix* matrix, bool printing_diagonal=true) {
 Matrix* tradMult(Matrix* l_matrix, Matrix* r_matrix) {
 
     if (l_matrix->dimension != r_matrix->dimension) {
-        throw invalid_argument("Function only multiplies square matrices.");
+        throw invalid_argument("tradMult expects square matrices.");
     }
 
     int dimension = l_matrix->dimension;
@@ -151,30 +135,14 @@ Matrix* tradMult(Matrix* l_matrix, Matrix* r_matrix) {
 
     int i, j, r, cur_dot_prod;
 
-    // If matrix on RHS is in transposed form, optimize cache use
-    if (!r_matrix->left_matrix) {
-        for (r = 0; r < dimension; r++) {
-            for (i = 0; i < dimension; i++) {
-                cur_dot_prod = 0;
-                for (j = 0; j < dimension; j++) {
-                    cur_dot_prod += l_matrix->entries[i][j] * r_matrix->entries[r][j];
-                }
-                ans_mat->entries[i][r] = cur_dot_prod;
+    for (r = 0; r < dimension; r++) {
+        for (i = 0; i < dimension; i++) {
+            cur_dot_prod = 0;
+            for (j = 0; j < dimension; j++) {
+                cur_dot_prod += l_matrix->entries[i][j] * r_matrix->entries[j][r];
             }
+            ans_mat->entries[i][r] = cur_dot_prod;
         }
-
-    // Standard matrix multiplication if both are in standard form
-    } else {
-        for (r = 0; r < dimension; r++) {
-            for (i = 0; i < dimension; i++) {
-                cur_dot_prod = 0;
-                for (j = 0; j < dimension; j++) {
-                    cur_dot_prod += l_matrix->entries[i][j] * r_matrix->entries[j][r];
-                }
-                ans_mat->entries[i][r] = cur_dot_prod;
-            }
-        }
-
     }
 
 	return ans_mat;
@@ -254,6 +222,7 @@ Matrix* strassenMult(Matrix* mata, Matrix* matb, int dimension) {
 
 		bool padding = false;
 		
+		// TODO improve even/odd
 		// if matrix is of odd dimension, pad a row and col of zeroes
 		if (dimension%2 == 1) {
 			padding = true;
@@ -373,7 +342,6 @@ bool matricesAreEqual(Matrix* A, Matrix* B) {
     return are_equal;
 }
 
-// TODO extend to allow for random matrix testing
 void testingUtility(string infile, int dimension, bool use_random_matrices=true, bool using_strassen=true, bool printing_matrix=false) {
 
     Matrix* A;
@@ -389,6 +357,9 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
         Matrix* C_strass = strassenMult(A, B, dimension);
         Matrix* C_trad = tradMult(A, B);
 
+        delete A;
+        delete B;
+
         /*
          Can't "know" the correct result a priori, so we assume that if each type of
          matrix multiplication is working correcly that they will return the same result
@@ -399,6 +370,9 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
             printMatrix(C_strass);
             printMatrix(C_trad);
         }
+
+        delete C_strass;
+        delete C_trad;
 
     } else {
 
@@ -415,6 +389,9 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
             C = tradMult(A,B);
         }
 
+        delete A;
+        delete B;
+
         // Left matrix built from test files
         Matrix* correct_C = buildMatrix(infile, dimension*dimension*2, dimension);
 
@@ -425,15 +402,18 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
             printMatrix(correct_C);
         }
 
+        delete C;
+        delete correct_C;
+
     }
 }
 
 /*
 
  TIMING UTILITY FUNCTIONS
- 
+
  timeMatrixFromFile exists in case TFs/we want to time the execution of Strassen's on a known matrix pair
- 
+
  timingUtility generates time data over a range of dimensions for either Strassen's or Traditional Multiplication
 
  */
@@ -449,13 +429,14 @@ void timeMatrixFromFile(string infile, int dimension) {
     clock_t mult_start = clock();
     Matrix* C = strassenMult(A,B, dimension);
     double mult_total = (clock() - mult_start) / (double)(CLOCKS_PER_SEC);
+    free(C);
 
     cout << "Construction for matrix of size " << dimension << " took " << construct_total << "s" << endl;
     cout << "Multiplication took " << mult_total << "s" << endl;
 }
 
 
-void timingUtility(int lower_bound, int upper_bound, int trials, bool using_strassen=true) {
+void timingUtility(int lower_bound, int upper_bound, int trials, int interval, bool using_strassen=true) {
 
     int cur_matrix_dimension;
     string output_file_name;
@@ -469,11 +450,12 @@ void timingUtility(int lower_bound, int upper_bound, int trials, bool using_stra
     }
 
     // Build ouput file name
-    output_file_name += to_string(lower_bound) + "_" + to_string(upper_bound) + "_" + to_string(trials) + ".txt";
+    output_file_name += to_string(lower_bound) + "_" + to_string(upper_bound) + "_" + to_string(interval) + "_" + to_string(trials) + ".txt";
     ofstream output_file;
     output_file.open(output_file_name);
 
-    for (cur_matrix_dimension = lower_bound; cur_matrix_dimension <= upper_bound; cur_matrix_dimension++) {
+    cur_matrix_dimension = lower_bound;
+    while(cur_matrix_dimension <= upper_bound) {
 
         // For matrix of cur_matrix_dimension = n
         double total_mult_time = 0;
@@ -481,16 +463,17 @@ void timingUtility(int lower_bound, int upper_bound, int trials, bool using_stra
 
         cout << "Matrix of Size: " << cur_matrix_dimension << endl << OUTPUT_SEPERATOR;
 
-        // TODO Currently not doing anything with this construction data. Might be useful later.
-//        clock_t construct_start = clock();
-        Matrix* A = genRandMatrix(cur_matrix_dimension); // TODO Free this? Memory leaks potentially from recreating matrices again and again?
+        clock_t construct_start = clock();
+        Matrix* A = genRandMatrix(cur_matrix_dimension);
         Matrix* B = genRandMatrix(cur_matrix_dimension);
-//        double construct_time = (clock() - construct_start) / (double)(CLOCKS_PER_SEC);
+        double construct_time = (clock() - construct_start) / (double)(CLOCKS_PER_SEC);
+        construct_time = 0; // No need for this measurement, but might use it later.
+
 
         for (int trial = 0; trial < trials; trial++) {
 
             clock_t mult_start = clock();
-            Matrix* C; // TODO Free?
+            Matrix* C;
             if (using_strassen) {
                 C = strassenMult(A,B, cur_matrix_dimension);
             } else {
@@ -499,12 +482,19 @@ void timingUtility(int lower_bound, int upper_bound, int trials, bool using_stra
 
             double mult_total = (clock() - mult_start) / (double)(CLOCKS_PER_SEC);
             total_mult_time += mult_total;
+
+            delete C;
         }
 
         avg_mult_time = total_mult_time / trials;
 
         cout << "Average Time for Mult:    " << avg_mult_time << endl;
         output_file << cur_matrix_dimension << "\t" << avg_mult_time << endl;
+
+        cur_matrix_dimension += interval;
+
+        delete A;
+        delete B;
     }
 
     output_file.close();
@@ -538,15 +528,10 @@ int main(int argc, char* argv[]) {
 
     if (flag == 0) { // Production settings
 
-        Matrix* A = buildMatrix(infile, 0, dimension, true);
+        Matrix* A = buildMatrix(infile, 0, dimension);
 
-        /*
-         The second parameter determines where to start reading in from the text file.
-
-         The last parameter refers to the fact that this is a "right_matrix"-- basically that it is
-         an array of columns instead of rows, which yields improved caching performance during matrix multiplication.
-         */
-        Matrix* B = buildMatrix(infile, dimension*dimension, dimension, false);
+        // The second parameter determines where to start reading in from the text file.
+        Matrix* B = buildMatrix(infile, dimension*dimension, dimension);
 
 		Matrix* C = tradMult(A,B);
         printMatrix(C,false);
@@ -561,20 +546,21 @@ int main(int argc, char* argv[]) {
     if (flag == 2) { // Run deterministic tests on Strassen and Trad
 
         // Normal
-        testingUtility(infile, dimension, false, true,true);
-        testingUtility(infile, dimension, false, false,true);
+        testingUtility(infile, dimension, false, true, true);
+        testingUtility(infile, dimension, false, false, true);
+
         return 0;
     }
 
     if (flag == 3) { // Generate time data for Strassen
 
         // Strassen
-        timingUtility(dimension, dimension, 5);
+        timingUtility(2, dimension, 5, 10, true);
     }
 
     if (flag == 4) { // Generate time data for Trad
 
         // Traditional
-        timingUtility(dimension, dimension, 5, false);
+        timingUtility(2, dimension, 5, 10, false);
     }
 }
