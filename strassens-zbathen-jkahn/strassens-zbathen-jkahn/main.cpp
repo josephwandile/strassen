@@ -16,7 +16,7 @@
 
  */
 using namespace std;
-const int CUTOFF = 16;
+const int CUTOFF = 16; // TODO Should probably be set to 1 for debugging Strassen's
 const bool IN_DEV = true; // Runs a couple simple tests before executing main commands as a sanity check
 const string OUTPUT_SEPERATOR = "-----------------------------\n\n";
 
@@ -203,8 +203,9 @@ void updateAuxMatrix(Matrix* P_aux, Matrix* P_new) {
     P_aux->dimension = P_new->dimension;
 
     for (int i = 0; i < P_new->dimension; i++) {
-        for (int j = 0; j < P_new->dimension; i++) {
-            P_aux->entries[i][j] = P_new->entries[i][j];
+        for (int j = 0; j < P_new->dimension; i++) { // TODO tidy this up when bug killed
+            int temp = P_new->entries[i][j];
+            P_aux->entries[i][j] = temp;
         }
     }
 }
@@ -279,7 +280,7 @@ Matrix* strassenMult(Matrix* A, Matrix* B, Matrix* P_aux) {
     int dimension = A->dimension;
 
 	if (dimension <= CUTOFF){
-		return tradMult(A, B);
+		return tradMult(A, B); // TODO what is the implication of strassen referencing P with the cutoff point and normal mult?
 	} else {
 
         // TODO make even more modular
@@ -429,7 +430,7 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
 
         A = genRandMatrix(dimension);
         B = genRandMatrix(dimension);
-        P_aux = instantiateMatrix(dimension / 2);
+        P_aux = instantiateMatrix(ceil(dimension / 2));
 
         Matrix* C_strass = strassenMult(A, B, P_aux);
         Matrix* C_trad = tradMult(A, B);
@@ -456,7 +457,7 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
 
         A = buildMatrix(infile, 0, dimension);
         B = buildMatrix(infile, dimension*dimension, dimension);
-        P_aux = instantiateMatrix(dimension / 2);
+        P_aux = instantiateMatrix(ceil(dimension / 2));
 
         Matrix* C;
 
@@ -511,7 +512,7 @@ void timeMatrixFromFile(string infile, int dimension) {
     clock_t mult_start = clock();
     Matrix* C = strassenMult(A,B, P_aux);
     double mult_total = (clock() - mult_start) / (double)(CLOCKS_PER_SEC);
-    
+
     delete A;
     delete B;
     delete P_aux;
@@ -561,7 +562,7 @@ void timingUtility(int lower_bound, int upper_bound, int trials, int interval, b
             clock_t mult_start = clock();
             Matrix* C;
             if (using_strassen) {
-                Matrix* P_aux = instantiateMatrix(ceil(cur_matrix_dimension/2));
+                Matrix* P_aux = instantiateMatrix(ceil(cur_matrix_dimension / 2));
                 C = strassenMult(A, B, P_aux);
                 delete P_aux;
             } else {
@@ -609,11 +610,12 @@ int main(int argc, char* argv[]) {
     if (IN_DEV) {
 
         // Simple test cases to make sure nothing has gone totally wrong.
-        testingUtility("test33.txt", 3, false, true); // Strassen
-        testingUtility("test33.txt", 3, false, false); // Traditional
-        testingUtility("", 16, true, true); // Random Matrices
-        testingUtility("", 39, true, true); // Random Matrices
-        testingUtility("", 16, true, true); // Random Matrices
+//        testingUtility("test33.txt", 3, false, true); // Strassen
+//        testingUtility("test33.txt", 3, false, false); // Traditional
+//        testingUtility("", 16, true, true); // Random Matrices
+//        testingUtility("", 39, true, true); // Random Matrices
+//        testingUtility("", 16, true, true); // Random Matrices
+        testingUtility("", 17, true, true);
         cout << "Basic Tests Pass. Executing instructions from command line." << endl << OUTPUT_SEPERATOR;
     }
 
