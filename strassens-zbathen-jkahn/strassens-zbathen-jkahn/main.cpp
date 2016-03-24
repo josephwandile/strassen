@@ -559,7 +559,7 @@ int main(int argc, char* argv[]) {
     if (flag == 3) { // Generate time data for Strassen
 
         // Strassen
-        timingUtility(2, dimension, 5, 10, true);
+        timingUtility(dimension, dimension, 1, 1, true);
     }
 
     if (flag == 4) { // Generate time data for Trad
