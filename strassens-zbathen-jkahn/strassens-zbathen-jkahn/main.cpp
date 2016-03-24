@@ -8,6 +8,7 @@
 #include <ctime>
 #include <random>
 
+
 /*
 
  PROGRAM SETUP
@@ -20,6 +21,7 @@ const string OUTPUT_SEPERATOR = "-----------------------------\n\n";
 
 default_random_engine generator;
 uniform_int_distribution<int> distribution(-1,2);
+
 
 /*
 
@@ -80,7 +82,7 @@ Matrix* buildMatrix(string infile, int position, int dimension) {
     return matrix;
 }
 
-// Required format for assignment output
+// Required output format for assignment
 void printMatrix(Matrix* matrix, bool printing_diagonal=true) {
 
     if (printing_diagonal) {
