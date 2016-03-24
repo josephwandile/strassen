@@ -15,7 +15,7 @@
  */
 using namespace std;
 const int CUTOFF = 1;
-const bool IN_DEV = false; // TODO Check this
+const bool IN_DEV = false; // Runs a couple simple tests before executing main commands as a sanity check
 const string OUTPUT_SEPERATOR = "-----------------------------\n\n";
 
 default_random_engine generator;
@@ -110,13 +110,13 @@ void printMatrix(Matrix* matrix, bool printing_diagonal=true) {
 /*
 
  TRADITIONAL MATRIX MULT
- 
+
  We experimented with representing the r_matrix in a transposed form
  (i.e. r_matrix[col][row]) to improve cache performance, but in the end
  found that it complicated the code significantly when implemeting Strassen's
- in-line. 
- 
- In the trade-off between simplicity and speed we felt simplicty had a larger 
+ in-line.
+
+ In the trade-off between simplicity and speed we felt simplicty had a larger
  net benefit in this instance.
 
  */
@@ -134,7 +134,7 @@ Matrix* tradMult(Matrix* l_matrix, Matrix* r_matrix) {
     Matrix* ans_mat = instantiateMatrix(dimension);
 
     int i, j, r, cur_dot_prod;
-   
+
     for (r = 0; r < dimension; r++) {
         for (i = 0; i < dimension; i++) {
             cur_dot_prod = 0;
@@ -191,9 +191,6 @@ Matrix* strassenMult(Matrix* mata, Matrix* matb, int dimension) {
 	if (dimension <= CUTOFF){
 		return tradMult(mata, matb);
 	} else {
-
-        // TODO make even more modular
-        // TODO need to pass in references to initial matrices for inline strass
 
 		Matrix* m1a = refArith(mata, 0, 0, dimension / 2, dimension / 2, dimension / 2, true);
 		Matrix* m1b = refArith(matb, 0, 0, dimension / 2, dimension / 2, dimension / 2, true);
@@ -300,7 +297,6 @@ bool matricesAreEqual(Matrix* A, Matrix* B) {
     return are_equal;
 }
 
-// TODO extend to allow for random matrix testing
 void testingUtility(string infile, int dimension, bool use_random_matrices=true, bool using_strassen=true, bool printing_matrix=false) {
 
     Matrix* A;
@@ -316,6 +312,9 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
         Matrix* C_strass = strassenMult(A, B, dimension);
         Matrix* C_trad = tradMult(A, B);
 
+        delete A;
+        delete B;
+
         /*
          Can't "know" the correct result a priori, so we assume that if each type of
          matrix multiplication is working correcly that they will return the same result
@@ -326,6 +325,9 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
             printMatrix(C_strass);
             printMatrix(C_trad);
         }
+
+        delete C_strass;
+        delete C_trad;
 
     } else {
 
@@ -342,6 +344,9 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
             C = tradMult(A,B);
         }
 
+        delete A;
+        delete B;
+
         // Left matrix built from test files
         Matrix* correct_C = buildMatrix(infile, dimension*dimension*2, dimension);
 
@@ -352,15 +357,18 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
             printMatrix(correct_C);
         }
 
+        delete C;
+        delete correct_C;
+
     }
 }
 
 /*
 
  TIMING UTILITY FUNCTIONS
- 
+
  timeMatrixFromFile exists in case TFs/we want to time the execution of Strassen's on a known matrix pair
- 
+
  timingUtility generates time data over a range of dimensions for either Strassen's or Traditional Multiplication
 
  */
@@ -403,23 +411,24 @@ void timingUtility(int lower_bound, int upper_bound, int trials, int interval, b
 
     cur_matrix_dimension = lower_bound;
     while(cur_matrix_dimension <= upper_bound) {
-        
+
         // For matrix of cur_matrix_dimension = n
         double total_mult_time = 0;
         double avg_mult_time = 0;
 
         cout << "Matrix of Size: " << cur_matrix_dimension << endl << OUTPUT_SEPERATOR;
 
-//        clock_t construct_start = clock(); TODO Use this for the analysis?
-        Matrix* A = genRandMatrix(cur_matrix_dimension); // TODO Free this? Memory leaks potentially from recreating matrices again and again?
+        clock_t construct_start = clock();
+        Matrix* A = genRandMatrix(cur_matrix_dimension);
         Matrix* B = genRandMatrix(cur_matrix_dimension);
-//        double construct_time = (clock() - construct_start) / (double)(CLOCKS_PER_SEC);
-        
-        
+        double construct_time = (clock() - construct_start) / (double)(CLOCKS_PER_SEC);
+        construct_time = 0; // No need for this measurement, but might use it later.
+
+
         for (int trial = 0; trial < trials; trial++) {
 
             clock_t mult_start = clock();
-            Matrix* C; // TODO Free?
+            Matrix* C;
             if (using_strassen) {
                 C = strassenMult(A,B, cur_matrix_dimension);
             } else {
@@ -428,14 +437,19 @@ void timingUtility(int lower_bound, int upper_bound, int trials, int interval, b
 
             double mult_total = (clock() - mult_start) / (double)(CLOCKS_PER_SEC);
             total_mult_time += mult_total;
+
+            delete C;
         }
 
         avg_mult_time = total_mult_time / trials;
 
         cout << "Average Time for Mult:    " << avg_mult_time << endl;
         output_file << cur_matrix_dimension << "\t" << avg_mult_time << endl;
-        
+
         cur_matrix_dimension += interval;
+
+        delete A;
+        delete B;
     }
 
     output_file.close();
@@ -487,8 +501,8 @@ int main(int argc, char* argv[]) {
     if (flag == 2) { // Run deterministic tests on Strassen and Trad
 
         // Normal
-        testingUtility(infile, dimension, false, true);
-        testingUtility(infile, dimension, false, false);
+        testingUtility(infile, dimension, false, true, true);
+        testingUtility(infile, dimension, false, false, true);
         return 0;
     }
 
