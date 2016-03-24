@@ -15,7 +15,7 @@
 
  */
 using namespace std;
-const int CUTOFF = 16;
+const int CUTOFF = 2;
 const bool IN_DEV = true; // Runs a couple simple tests before executing main commands as a sanity check
 const string OUTPUT_SEPERATOR = "-----------------------------\n\n";
 
@@ -445,7 +445,7 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
          Can't "know" the correct result a priori, so we assume that if each type of
          matrix multiplication is working correcly that they will return the same result
          */
-//        assert(matricesAreEqual(C_strass, C_trad));
+        assert(matricesAreEqual(C_strass, C_trad));
 
         if (printing_matrix) {
             printMatrix(C_strass);
@@ -600,7 +600,7 @@ int main(int argc, char* argv[]) {
     string infile = argv[3];
 
     if (IN_DEV) {
-
+        
         // Simple test cases to make sure nothing has gone totally wrong.
         testingUtility("test33.txt", 3, false, true); // Strassen
         testingUtility("test33.txt", 3, false, false); // Traditional
