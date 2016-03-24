@@ -252,10 +252,10 @@ void modifyC(Matrix* C, int P_i) {
 
 }
 
-Matrix* strassenMult(Matrix* mata, Matrix* matb, int dimension) {
+Matrix* strassenMult(Matrix* A, Matrix* B, int dimension) {
 
 	if (dimension <= CUTOFF){
-		return tradMult(mata, matb);
+		return tradMult(A, B);
 	} else {
 
         // TODO make even more modular
@@ -267,93 +267,90 @@ Matrix* strassenMult(Matrix* mata, Matrix* matb, int dimension) {
 		// if matrix is of odd dimension, pad a row and col of zeroes
 		if (dimension%2 == 1) {
 			padding = true;
-			pad(mata, dimension);
-			pad(matb, dimension);
+			pad(A, dimension);
+			pad(B, dimension);
 			dimension += 1;
 		}
 
-		Matrix* m1a = refArith(mata, 0, 0, dimension / 2, dimension / 2, dimension / 2, true);
-		Matrix* m1b = refArith(matb, 0, 0, dimension / 2, dimension / 2, dimension / 2, true);
-		Matrix* m1 = strassenMult(m1a, m1b, dimension / 2);
+        // fill answer matrix using found m matrices
+        Matrix* C = instantiateMatrix(dimension);
 
-		Matrix* m2a = refArith(mata, 0, dimension / 2, dimension / 2, dimension / 2, dimension / 2, true);
-		Matrix* m2b = refReturn(matb, 0, 0, dimension / 2);
-		Matrix* m2 = strassenMult(m2a, m2b, dimension / 2);
+        int half_dim = dimension / 2;
 
-		Matrix* m3a = refReturn(mata, 0, 0, dimension / 2);
-		Matrix* m3b = refArith(matb, dimension / 2, 0, dimension / 2, dimension / 2, dimension / 2, false);
-		Matrix* m3 = strassenMult(m3a, m3b, dimension / 2);
-
-		Matrix* m4a = refReturn(mata, dimension / 2, dimension / 2, dimension / 2);
-		Matrix* m4b = refArith(matb, 0, dimension / 2, 0, 0, dimension / 2, false);
-		Matrix* m4 = strassenMult(m4a, m4b, dimension / 2);
-
-		Matrix* m5a = refArith(mata, 0, 0, dimension / 2, 0, dimension / 2, true);
-		Matrix* m5b = refReturn(matb, dimension / 2, dimension / 2, dimension / 2);
-		Matrix* m5 = strassenMult(m5a, m5b, dimension / 2);
-
-		Matrix* m6a = refArith(mata, 0, dimension / 2, 0, 0, dimension / 2, false);
-		Matrix* m6b = refArith(matb, 0, 0, dimension / 2, 0, dimension / 2, true);
-		Matrix* m6 = strassenMult(m6a, m6b, dimension / 2);
-
-		Matrix* m7a = refArith(mata, dimension / 2, 0, dimension / 2, dimension / 2, dimension / 2, false);
-		Matrix* m7b = refArith(matb, 0, dimension / 2, dimension / 2, dimension / 2, dimension / 2, true);
-		Matrix* m7 = strassenMult(m7a, m7b, dimension / 2);
-
-		// fill answer matrix using found m matrices
-		Matrix* C = instantiateMatrix(dimension);
-
-        int half_dim = dimension/2;
+		Matrix* m1a = refArith(A, 0, 0, half_dim, half_dim, half_dim, true);
+		Matrix* m1b = refArith(B, 0, 0, half_dim, half_dim, half_dim, true);
+		Matrix* m1 = strassenMult(m1a, m1b, half_dim);
 
         modifySubmatrix(C, m1, 0, half_dim); // Add tr
         modifySubmatrix(C, m1, half_dim, half_dim); // Add br
 
+        delete m1a;
+        delete m1b;
+        delete m1;
+
+		Matrix* m2a = refArith(A, 0, half_dim, half_dim, half_dim, half_dim, true);
+		Matrix* m2b = refReturn(B, 0, 0, half_dim);
+		Matrix* m2 = strassenMult(m2a, m2b, half_dim);
+
         modifySubmatrix(C, m2, 0, 0, false); // Subtract tl
         modifySubmatrix(C, m2, 0, half_dim); // Add tr
+
+        delete m2a;
+        delete m2b;
+        delete m2;
+
+		Matrix* m3a = refReturn(A, 0, 0, half_dim);
+		Matrix* m3b = refArith(B, half_dim, 0, half_dim, half_dim, half_dim, false);
+		Matrix* m3 = strassenMult(m3a, m3b, half_dim);
 
         modifySubmatrix(C, m3, half_dim, 0); // Add bl
         modifySubmatrix(C, m3, half_dim, half_dim, false); // Subtract br
 
+        delete m3a;
+        delete m3b;
+        delete m3;
+
+		Matrix* m4a = refReturn(A, half_dim, half_dim, half_dim);
+		Matrix* m4b = refArith(B, 0, half_dim, 0, 0, half_dim, false);
+		Matrix* m4 = strassenMult(m4a, m4b, half_dim);
+
         modifySubmatrix(C, m4, 0, 0); // Add tl
         modifySubmatrix(C, m4, half_dim, 0); // Add bl
+
+        delete m4a;
+        delete m4b;
+        delete m4;
+
+		Matrix* m5a = refArith(A, 0, 0, half_dim, 0, half_dim, true);
+		Matrix* m5b = refReturn(B, half_dim, half_dim, half_dim);
+		Matrix* m5 = strassenMult(m5a, m5b, half_dim);
 
         modifySubmatrix(C, m5, 0, 0); // Add tl
         modifySubmatrix(C, m5, half_dim, half_dim); // Add br
 
+        delete m5a;
+        delete m5b;
+        delete m5;
+
+		Matrix* m6a = refArith(A, 0, half_dim, 0, 0, half_dim, false);
+		Matrix* m6b = refArith(B, 0, 0, half_dim, 0, half_dim, true);
+		Matrix* m6 = strassenMult(m6a, m6b, half_dim);
+
         modifySubmatrix(C, m6, 0, 0); // Add tl
+
+        delete m6a;
+        delete m6b;
+        delete m6;
+
+		Matrix* m7a = refArith(A, half_dim, 0, half_dim, half_dim, half_dim, false);
+		Matrix* m7b = refArith(B, 0, half_dim, half_dim, half_dim, half_dim, true);
+		Matrix* m7 = strassenMult(m7a, m7b, half_dim);
 
         modifySubmatrix(C, m7, half_dim, half_dim, false); // Subtract br
 
-//		// c11 = m1 + m4 - m5 + m7
-//		for (int col = 0; col < dimension / 2; col++) {
-//			for (int row = 0; row < dimension / 2; row++) {
-//				C->entries[row][col] = m1->entries[row][col] + m4->entries[row][col]
-//					- m5->entries[row][col] + m7->entries[row][col];
-//			}
-//		}
-//
-//		// c12 = m3 + m5
-//		for (int col = 0; col < dimension / 2; col++) {
-//			for (int row = 0; row < dimension / 2; row++) {
-//				C->entries[row][col + dimension/2] = m3->entries[row][col] + m5->entries[row][col];
-//			}
-//		}
-//
-//		// c21 = m2 + m4
-//		for (int col = 0; col < dimension / 2; col++) {
-//			for (int row = 0; row < dimension / 2; row++) {
-//				C->entries[row + dimension/2][col] = m2->entries[row][col] + m4->entries[row][col];
-//			}
-//		}
-//
-//		// c22 = m1 - m2 + m3 + m6
-//		for (int col = 0; col < dimension / 2; col++) {
-//			for (int row = 0; row < dimension / 2; row++) {
-//				C->entries[row + dimension/2][col + dimension/2] =
-//					m1->entries[row][col] - m2->entries[row][col]
-//					+ m3->entries[row][col] + m6->entries[row][col];
-//			}
-//		}
+        delete m7a;
+        delete m7b;
+        delete m7;
 
 		// if we padded at the beginning, remove the extra zeroes
 		if (padding) {

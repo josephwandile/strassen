@@ -27,7 +27,6 @@
 * Decide how to do memory management for auxiliary matrices
 
 * Writeup
- * left_matrix v. right_matrix to promote cache efficiency
  * inline strassen for space
  * could have used DP to optimize standard matrix mult further
  * How low was cross-over point
@@ -35,6 +34,7 @@
  * What types of matrices were tested? Does it matter?
  * m matrices generation
  * addition occurs using references, not new matrices
+ * there is a trade off between space and speed for modifying submatrices. it can be done with 4 passes but then requires that more Pis are stored. Or you can store only one Pi at a time and do it in 12 passes. Note it might be possible to temporarily store some of the Pis in C.
 
 * Analysis
  * Building the Ms involves 10 additions/subtractions of matrices each of dim n/2. 7 multiplications.
