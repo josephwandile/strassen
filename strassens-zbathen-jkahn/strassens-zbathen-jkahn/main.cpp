@@ -445,12 +445,12 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
          Can't "know" the correct result a priori, so we assume that if each type of
          matrix multiplication is working correcly that they will return the same result
          */
-        assert(matricesAreEqual(C_strass, C_trad));
-
         if (printing_matrix) {
-            printMatrix(C_strass);
-            printMatrix(C_trad);
+            printMatrix(C_strass, false);
+            printMatrix(C_trad, false);
         }
+        
+        assert(matricesAreEqual(C_strass, C_trad));
 
         delete C_strass;
         delete C_trad;
@@ -602,10 +602,12 @@ int main(int argc, char* argv[]) {
     if (IN_DEV) {
         
         // Simple test cases to make sure nothing has gone totally wrong.
-        testingUtility("test33.txt", 3, false, true); // Strassen
-        testingUtility("test33.txt", 3, false, false); // Traditional
-        testingUtility("", 16, true, true); // Random Matrices
-        testingUtility("", 39, true, true); // Random Matrices
+//        testingUtility("test33.txt", 3, false, true); // Strassen
+//        testingUtility("test33.txt", 3, false, false); // Traditional
+        testingUtility("", 4, true, true, true); // Random Matrices
+
+//        testingUtility("", 16, true, true); // Random Matrices
+//        testingUtility("", 39, true, true); // Random Matrices
         cout << "Basic Tests Pass. Executing instructions from command line." << endl << OUTPUT_SEPERATOR;
     }
 
