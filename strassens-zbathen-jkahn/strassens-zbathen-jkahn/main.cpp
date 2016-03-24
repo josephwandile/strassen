@@ -152,9 +152,12 @@ Matrix* tradMult(Matrix* l_matrix, Matrix* r_matrix) {
 
  */
 
-// given matrix, distance from left and distance from top of both parts, and dimension of output matrix, returns sum
-Matrix* combineSubmatrices(Matrix* refmat, int j_1, int i_1, int j_2, int i_2, int dimension, bool add) {
+// Given matrix, distance from left and distance from top of both parts, and dimension of output matrix, returns sum
+Matrix* combineSubmatrices(Matrix* refmat, int j_1, int i_1, int j_2, int i_2, bool add) {
+
+    int dimension = refmat->dimension / 2;
 	Matrix* ans_mat = instantiateMatrix(dimension);
+
 	if (add) {
 		for (int row = 0; row < dimension; row++) {
 			for (int col = 0; col < dimension; col++) {
@@ -173,8 +176,11 @@ Matrix* combineSubmatrices(Matrix* refmat, int j_1, int i_1, int j_2, int i_2, i
 }
 
 
-Matrix* extractSubmatrix(Matrix* refmat, int j, int i, int dimension) {
+Matrix* extractSubmatrix(Matrix* refmat, int j, int i) {
+
+    int dimension = refmat->dimension / 2;
 	Matrix* ans_mat = instantiateMatrix(dimension);
+
 	for (int row = 0; row < dimension; row++) {
 		for (int col = 0; col < dimension; col++) {
 			ans_mat->entries[row][col] = refmat->entries[i + row][j + col];
@@ -225,38 +231,36 @@ void modifySubmatrix(Matrix* C, Matrix* P, int i, int j, bool adding=true) {
 
 
 // Hardcoded to deal with Strassen's messiness
-void modifyC(Matrix* C, int P_i) {
-
-}
+void modifyC(Matrix* C, int P_i) {}
 
 
 // add a row and a col of zeroes to matrix
 void pad(Matrix* mat, int dimension) {
 
-	// pad a row at the bottom
+	// Pad a row at the bottom
 	vector<int> zeroes(dimension + 1, 0);
 	mat->entries.push_back(zeroes);
 
-	// pad a column on the right
+	// Pad a column on the right
 	for (int i = 0; i < dimension; i++) {
 		mat->entries[i].push_back(0);
 	}
 }
 
-// remove the last row and last col of a matrix
+// Remove the last row and last col of a matrix
 void unpad(Matrix* matrix, int dimension) {
 
-	// remove last row from bottom
+	// Remove last row from bottom
 	matrix->entries.pop_back();
 
-	// remove last col from right
+	// Remove last col from right
 	for (int i = 0; i < dimension; i++) {
 		matrix->entries[i].pop_back();
 	}
 	matrix->dimension = dimension - 1;
 }
 
-
+// TODO dimension shouldn't be passed around-- each matrix should always know it's dimension
 Matrix* strassenMult(Matrix* A, Matrix* B, int dimension) {
 
 	if (dimension <= CUTOFF){
@@ -268,9 +272,8 @@ Matrix* strassenMult(Matrix* A, Matrix* B, int dimension) {
 
 		bool padding = false;
 
-		// TODO improve even/odd
-		// if matrix is of odd dimension, pad a row and col of zeroes
-		if (dimension%2 == 1) {
+		// If matrix is of odd dimension, pad a row and col of zeroes
+		if ((dimension & 1) != 0) {
 			padding = true;
 			pad(A, dimension);
 			pad(B, dimension);
@@ -282,8 +285,8 @@ Matrix* strassenMult(Matrix* A, Matrix* B, int dimension) {
 
         int half_dim = dimension / 2;
 
-		Matrix* m1a = combineSubmatrices(A, 0, 0, half_dim, half_dim, half_dim, true);
-		Matrix* m1b = combineSubmatrices(B, 0, 0, half_dim, half_dim, half_dim, true);
+		Matrix* m1a = combineSubmatrices(A, 0, 0, half_dim, half_dim, true);
+		Matrix* m1b = combineSubmatrices(B, 0, 0, half_dim, half_dim, true);
 		Matrix* m1 = strassenMult(m1a, m1b, half_dim);
 
         modifySubmatrix(C, m1, 0, half_dim); // Add tr
@@ -293,8 +296,8 @@ Matrix* strassenMult(Matrix* A, Matrix* B, int dimension) {
         delete m1b;
         delete m1;
 
-		Matrix* m2a = combineSubmatrices(A, 0, half_dim, half_dim, half_dim, half_dim, true);
-		Matrix* m2b = extractSubmatrix(B, 0, 0, half_dim);
+		Matrix* m2a = combineSubmatrices(A, 0, half_dim, half_dim, half_dim, true);
+		Matrix* m2b = extractSubmatrix(B, 0, 0);
 		Matrix* m2 = strassenMult(m2a, m2b, half_dim);
 
         modifySubmatrix(C, m2, 0, 0, false); // Subtract tl
@@ -304,8 +307,8 @@ Matrix* strassenMult(Matrix* A, Matrix* B, int dimension) {
         delete m2b;
         delete m2;
 
-		Matrix* m3a = extractSubmatrix(A, 0, 0, half_dim);
-		Matrix* m3b = combineSubmatrices(B, half_dim, 0, half_dim, half_dim, half_dim, false);
+		Matrix* m3a = extractSubmatrix(A, 0, 0);
+		Matrix* m3b = combineSubmatrices(B, half_dim, 0, half_dim, half_dim, false);
 		Matrix* m3 = strassenMult(m3a, m3b, half_dim);
 
         modifySubmatrix(C, m3, half_dim, 0); // Add bl
@@ -315,8 +318,8 @@ Matrix* strassenMult(Matrix* A, Matrix* B, int dimension) {
         delete m3b;
         delete m3;
 
-		Matrix* m4a = extractSubmatrix(A, half_dim, half_dim, half_dim);
-		Matrix* m4b = combineSubmatrices(B, 0, half_dim, 0, 0, half_dim, false);
+		Matrix* m4a = extractSubmatrix(A, half_dim, half_dim);
+		Matrix* m4b = combineSubmatrices(B, 0, half_dim, 0, 0, false);
 		Matrix* m4 = strassenMult(m4a, m4b, half_dim);
 
         modifySubmatrix(C, m4, 0, 0); // Add tl
@@ -326,8 +329,8 @@ Matrix* strassenMult(Matrix* A, Matrix* B, int dimension) {
         delete m4b;
         delete m4;
 
-		Matrix* m5a = combineSubmatrices(A, 0, 0, half_dim, 0, half_dim, true);
-		Matrix* m5b = extractSubmatrix(B, half_dim, half_dim, half_dim);
+		Matrix* m5a = combineSubmatrices(A, 0, 0, half_dim, 0, true);
+		Matrix* m5b = extractSubmatrix(B, half_dim, half_dim);
 		Matrix* m5 = strassenMult(m5a, m5b, half_dim);
 
         modifySubmatrix(C, m5, 0, 0); // Add tl
@@ -337,8 +340,8 @@ Matrix* strassenMult(Matrix* A, Matrix* B, int dimension) {
         delete m5b;
         delete m5;
 
-		Matrix* m6a = combineSubmatrices(A, 0, half_dim, 0, 0, half_dim, false);
-		Matrix* m6b = combineSubmatrices(B, 0, 0, half_dim, 0, half_dim, true);
+		Matrix* m6a = combineSubmatrices(A, 0, half_dim, 0, 0, false);
+		Matrix* m6b = combineSubmatrices(B, 0, 0, half_dim, 0, true);
 		Matrix* m6 = strassenMult(m6a, m6b, half_dim);
 
         modifySubmatrix(C, m6, 0, 0); // Add tl
@@ -347,8 +350,8 @@ Matrix* strassenMult(Matrix* A, Matrix* B, int dimension) {
         delete m6b;
         delete m6;
 
-		Matrix* m7a = combineSubmatrices(A, half_dim, 0, half_dim, half_dim, half_dim, false);
-		Matrix* m7b = combineSubmatrices(B, 0, half_dim, half_dim, half_dim, half_dim, true);
+		Matrix* m7a = combineSubmatrices(A, half_dim, 0, half_dim, half_dim, false);
+		Matrix* m7b = combineSubmatrices(B, 0, half_dim, half_dim, half_dim, true);
 		Matrix* m7 = strassenMult(m7a, m7b, half_dim);
 
         modifySubmatrix(C, m7, half_dim, half_dim, false); // Subtract br
