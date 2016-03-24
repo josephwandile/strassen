@@ -528,12 +528,12 @@ int main(int argc, char* argv[]) {
     if (flag == 3) { // Generate time data for Strassen
 
         // Strassen
-        timingUtility(infile, dimension, dimension, 5);
+        timingUtility(dimension, dimension, 5);
     }
 
     if (flag == 4) { // Generate time data for Trad
 
         // Traditional
-        timingUtility(infile, dimension, dimension, 5, false);
+        timingUtility(dimension, dimension, 5, false);
     }
 }
