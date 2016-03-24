@@ -13,14 +13,14 @@
 
 
 /*
- 
+
  PROGRAM SETUP
- 
+
  */
 using namespace std;
 const int CUTOFF = 1;
 const bool IN_DEV = true;
-const string OUPUT_SEPERATOR = "-----------------------------\n\n";
+const string OUTPUT_SEPERATOR = "-----------------------------\n\n";
 
 default_random_engine generator;
 uniform_int_distribution<int> distribution(-1,2);
@@ -297,119 +297,6 @@ Matrix* strassenMult(Matrix* mata, Matrix* matb, int dimension) {
  TESTING
 
  */
-
-// Assumes left_matrix
-bool matricesAreEqual(Matrix* A, Matrix* B) {
-
-    bool are_equal = true;
-
-    if (A->dimension != B->dimension) {
-        return false;
-    }
-
-    int dimension = A->dimension;
-
-    int i, j;
-
-    for (i = 0; i < dimension; i++) {
-        for (j = 0; j < dimension; j++) {
-
-            if (A->entries[i][j] != B->entries[i][j]) {
-                return false;
-            }
-        }
-    }
-    return are_equal;
-}
-
-// TODO extend to allow for random matrix testing
-void testMultiplication(string infile, int dimension, bool using_strassen=true, bool use_random_matrices=true, bool printing_matrix=false) {
-
-    Matrix* A = buildMatrix(infile, 0, dimension);
-    Matrix* B = buildMatrix(infile, dimension*dimension, dimension);
-    Matrix* C;
-
-    if (using_strassen) {
-        cout << "Testing Strassen" << endl;
-        C = strassenMult(A,B, dimension);
-    } else {
-        cout << "Testing Traditional Mult" << endl;
-        C = tradMult(A,B);
-    }
-
-    // Left matrix built from test files
-    Matrix* correct_C = buildMatrix(infile, dimension*dimension*2, dimension);
-
-    assert(matricesAreEqual(correct_C, C));
-
-    if (printing_matrix) {
-        printMatrix(C);
-        printMatrix(correct_C);
-    }
-}
-
-// TODO Should be able to more precisely define range for testing
-// TODO Do this with random matrix
-void timingUtility(string infile, int lower_bound, int upper_bound, int trials, bool using_strassen=true) {
-
-    int cur_matrix_dimension;
-    string file_name;
-
-    if (using_strassen) {
-        cout << "Strassen" << endl;
-        file_name = "strassen_";
-    } else {
-        cout << "Traditional" << endl;
-        file_name = "traditional_";
-    }
-
-    // Build ouput file name
-    file_name += to_string(lower_bound) + "_" + to_string(upper_bound) + "_" + to_string(trials) + ".txt";
-    ofstream output_file;
-    output_file.open(file_name);
-
-    for (cur_matrix_dimension = lower_bound; cur_matrix_dimension <= upper_bound; cur_matrix_dimension++) {
-
-        double total_construct_time = 0;
-        double total_mult_time = 0;
-        double avg_construct_time = 0;
-        double avg_mult_time = 0;
-
-        cout << "Matrix of Size: " << cur_matrix_dimension << endl << OUPUT_SEPERATOR;
-
-        for (int trial = 0; trial < trials; trial++) {
-
-            clock_t construct_start = clock();
-            Matrix* A = buildMatrix(infile, 0, cur_matrix_dimension, true);
-            Matrix* B = buildMatrix(infile, cur_matrix_dimension*cur_matrix_dimension, cur_matrix_dimension, false);
-            double construct_total = (clock() - construct_start) / (double)(CLOCKS_PER_SEC);
-            total_construct_time += construct_total;
-
-            clock_t mult_start = clock();
-            Matrix* C;
-            if (using_strassen) {
-                C = strassenMult(A,B, cur_matrix_dimension);
-            } else {
-                C = tradMult(A,B);
-            }
-
-            double mult_total = (clock() - mult_start) / (double)(CLOCKS_PER_SEC);
-            total_mult_time += mult_total;
-
-//            cout << construct_total << "s" << " for construction during trial " << trial << endl;
-//            cout << mult_total << "s" << " for multiplication during trial " << trial << endl;
-        }
-
-        avg_mult_time = total_mult_time / trials;
-        avg_construct_time = total_construct_time / trials;
-
-        cout << "Average Time for Construction:    " << avg_construct_time << endl << "Average Time for Mult:    " << avg_mult_time << endl;
-        output_file << cur_matrix_dimension << "\t" << avg_mult_time << endl;
-    }
-
-    output_file.close();
-}
-
 Matrix* genRandMatrix(int dimension) {
 
     int new_entry, i, j;
@@ -424,6 +311,164 @@ Matrix* genRandMatrix(int dimension) {
     }
     return matrix;
 }
+
+bool matricesAreEqual(Matrix* A, Matrix* B) {
+
+    bool are_equal = true;
+    if (A->dimension != B->dimension) {
+        return false;
+    }
+    int dimension = A->dimension;
+
+    int i, j;
+    for (i = 0; i < dimension; i++) {
+        for (j = 0; j < dimension; j++) {
+
+            if (A->entries[i][j] != B->entries[i][j]) {
+                return false;
+            }
+        }
+    }
+    return are_equal;
+}
+
+// TODO extend to allow for random matrix testing
+void testingUtility(string infile, int dimension, bool use_random_matrices=true, bool using_strassen=true, bool printing_matrix=false) {
+
+    Matrix* A;
+    Matrix* B;
+
+    if (use_random_matrices) {
+
+        cout << "Testing randomly generated matrices of size: " << dimension << endl << OUTPUT_SEPERATOR;
+
+        A = genRandMatrix(dimension);
+        B = genRandMatrix(dimension);
+
+        Matrix* C_strass = strassenMult(A, B, dimension);
+        Matrix* C_trad = tradMult(A, B);
+
+        /*
+         Can't "know" the correct result a priori, so we assume that if each type of
+         matrix multiplication is working correcly that they will return the same result
+         */
+        assert(matricesAreEqual(C_strass, C_trad));
+
+        if (printing_matrix) {
+            printMatrix(C_strass);
+            printMatrix(C_trad);
+        }
+
+    } else {
+
+        A = buildMatrix(infile, 0, dimension);
+        B = buildMatrix(infile, dimension*dimension, dimension);
+        Matrix* C;
+
+        // Deterministic test so we can test Strassen and Trad independently of each other
+        if (using_strassen) {
+            cout << "Testing Strassen" << endl;
+            C = strassenMult(A,B, dimension);
+        } else {
+            cout << "Testing Traditional Mult" << endl;
+            C = tradMult(A,B);
+        }
+
+        // Left matrix built from test files
+        Matrix* correct_C = buildMatrix(infile, dimension*dimension*2, dimension);
+
+        assert(matricesAreEqual(correct_C, C));
+
+        if (printing_matrix) {
+            printMatrix(C);
+            printMatrix(correct_C);
+        }
+
+    }
+}
+
+/*
+
+ TIMING UTILITY FUNCTIONS
+ 
+ timeMatrixFromFile exists in case TFs/we want to time the execution of Strassen's on a known matrix pair
+ 
+ timingUtility generates time data over a range of dimensions for either Strassen's or Traditional Multiplication
+
+ */
+void timeMatrixFromFile(string infile, int dimension) {
+
+    clock_t construct_start = clock();
+    Matrix* A = buildMatrix(infile, 0, dimension);
+    Matrix* B = buildMatrix(infile, dimension*dimension, dimension);
+    double construct_total = (clock() - construct_start) / (double)(CLOCKS_PER_SEC);
+
+    // Assuming we'll only want to time Strassen's method direcly from input file
+    cout << "Timing Strassen from input file." << endl << OUTPUT_SEPERATOR;
+    clock_t mult_start = clock();
+    Matrix* C = strassenMult(A,B, dimension);
+    double mult_total = (clock() - mult_start) / (double)(CLOCKS_PER_SEC);
+
+    cout << "Construction for matrix of size " << dimension << " took " << construct_total << "s" << endl;
+    cout << "Multiplication took " << mult_total << "s" << endl;
+}
+
+
+void timingUtility(int lower_bound, int upper_bound, int trials, bool using_strassen=true) {
+
+    int cur_matrix_dimension;
+    string output_file_name;
+
+    if (using_strassen) {
+        cout << "Timing Strassen" << endl;
+        output_file_name = "strassen_";
+    } else {
+        cout << "Timing Traditional" << endl;
+        output_file_name = "traditional_";
+    }
+
+    // Build ouput file name
+    output_file_name += to_string(lower_bound) + "_" + to_string(upper_bound) + "_" + to_string(trials) + ".txt";
+    ofstream output_file;
+    output_file.open(output_file_name);
+
+    for (cur_matrix_dimension = lower_bound; cur_matrix_dimension <= upper_bound; cur_matrix_dimension++) {
+
+        // For matrix of cur_matrix_dimension = n
+        double total_mult_time = 0;
+        double avg_mult_time = 0;
+
+        cout << "Matrix of Size: " << cur_matrix_dimension << endl << OUTPUT_SEPERATOR;
+
+        // TODO Currently not doing anything with this construction data. Might be useful later.
+//        clock_t construct_start = clock();
+        Matrix* A = genRandMatrix(cur_matrix_dimension); // TODO Free this? Memory leaks potentially from recreating matrices again and again?
+        Matrix* B = genRandMatrix(cur_matrix_dimension);
+//        double construct_time = (clock() - construct_start) / (double)(CLOCKS_PER_SEC);
+
+        for (int trial = 0; trial < trials; trial++) {
+
+            clock_t mult_start = clock();
+            Matrix* C; // TODO Free?
+            if (using_strassen) {
+                C = strassenMult(A,B, cur_matrix_dimension);
+            } else {
+                C = tradMult(A,B);
+            }
+
+            double mult_total = (clock() - mult_start) / (double)(CLOCKS_PER_SEC);
+            total_mult_time += mult_total;
+        }
+
+        avg_mult_time = total_mult_time / trials;
+
+        cout << "Average Time for Mult:    " << avg_mult_time << endl;
+        output_file << cur_matrix_dimension << "\t" << avg_mult_time << endl;
+    }
+
+    output_file.close();
+}
+
 
 /*
 
@@ -441,19 +486,16 @@ int main(int argc, char* argv[]) {
     int flag = stoi(argv[1]);
     int dimension = stoi(argv[2]);
     string infile = argv[3];
-    
-    if (IN_DEV) {
-        
-        // Simple test cases to make sure nothing has gone totally wrong.
-        testMultiplication(infile, dimension, true);
-        testMultiplication(infile, dimension, false);
-        cout << "Basic Tests Pass. Executing instructions from command line." << endl << OUPUT_SEPERATOR;
-    }
-    
-//    Matrix* T = genRandMatrix(5);
-//    printMatrix(T, false);
 
-    if (flag == 0) {
+    if (IN_DEV) {
+
+        // Simple test cases to make sure nothing has gone totally wrong.
+        testingUtility(infile, dimension, false, true);
+        testingUtility(infile, dimension, false, false);
+        cout << "Basic Tests Pass. Executing instructions from command line." << endl << OUTPUT_SEPERATOR;
+    }
+
+    if (flag == 0) { // Production settings
 
         Matrix* A = buildMatrix(infile, 0, dimension, true);
 
@@ -469,32 +511,27 @@ int main(int argc, char* argv[]) {
         printMatrix(C);
     }
 
-	if (flag == 1) {
+	if (flag == 1) { // Testing on randomly generated matrices of arbitrary size
 
-        // Strassen
-        testMultiplication(infile, dimension, true);
+        testingUtility(infile, dimension, true);
         return 0;
     }
 
-    if (flag == 2) {
+    if (flag == 2) { // Run deterministic tests on Strassen and Trad
 
         // Normal
-        testMultiplication(infile, dimension, false);
+        testingUtility(infile, dimension, false, true);
+        testingUtility(infile, dimension, false, false);
         return 0;
     }
 
-    if (flag == 3) {
-
-        cout << "Testing Cache-optimized Traditional Mult" << endl;
-    }
-
-    if (flag == 4) {
+    if (flag == 3) { // Generate time data for Strassen
 
         // Strassen
         timingUtility(infile, dimension, dimension, 5);
     }
 
-    if (flag == 5) {
+    if (flag == 4) { // Generate time data for Trad
 
         // Traditional
         timingUtility(infile, dimension, dimension, 5, false);
