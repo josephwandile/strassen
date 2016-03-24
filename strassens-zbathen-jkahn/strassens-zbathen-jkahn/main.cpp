@@ -19,7 +19,7 @@
  */
 using namespace std;
 const int CUTOFF = 1;
-const bool IN_DEV = true;
+const bool IN_DEV = false; // TODO Check this
 const string OUTPUT_SEPERATOR = "-----------------------------\n\n";
 
 default_random_engine generator;
@@ -414,7 +414,7 @@ void timeMatrixFromFile(string infile, int dimension) {
 }
 
 
-void timingUtility(int lower_bound, int upper_bound, int trials, bool using_strassen=true) {
+void timingUtility(int lower_bound, int upper_bound, int trials, int interval, bool using_strassen=true) {
 
     int cur_matrix_dimension;
     string output_file_name;
@@ -428,11 +428,14 @@ void timingUtility(int lower_bound, int upper_bound, int trials, bool using_stra
     }
 
     // Build ouput file name
-    output_file_name += to_string(lower_bound) + "_" + to_string(upper_bound) + "_" + to_string(trials) + ".txt";
+    output_file_name += to_string(lower_bound) + "_" + to_string(upper_bound) + "_" + to_string(interval) + "_" + to_string(trials) + ".txt";
     ofstream output_file;
     output_file.open(output_file_name);
 
-    for (cur_matrix_dimension = lower_bound; cur_matrix_dimension <= upper_bound; cur_matrix_dimension++) {
+    cur_matrix_dimension = lower_bound;
+    while(cur_matrix_dimension <= upper_bound) {
+        
+        cout << "!!!!" << cur_matrix_dimension << endl;
 
         // For matrix of cur_matrix_dimension = n
         double total_mult_time = 0;
@@ -464,6 +467,8 @@ void timingUtility(int lower_bound, int upper_bound, int trials, bool using_stra
 
         cout << "Average Time for Mult:    " << avg_mult_time << endl;
         output_file << cur_matrix_dimension << "\t" << avg_mult_time << endl;
+        
+        cur_matrix_dimension += interval;
     }
 
     output_file.close();
@@ -528,12 +533,12 @@ int main(int argc, char* argv[]) {
     if (flag == 3) { // Generate time data for Strassen
 
         // Strassen
-        timingUtility(dimension, dimension, 5);
+        timingUtility(2, dimension, 5, 10, true);
     }
 
     if (flag == 4) { // Generate time data for Trad
 
         // Traditional
-        timingUtility(dimension, dimension, 5, false);
+        timingUtility(2, dimension, 5, 10, false);
     }
 }
