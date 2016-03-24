@@ -19,7 +19,7 @@
  */
 using namespace std;
 const int CUTOFF = 1;
-const bool IN_DEV = true;
+const bool IN_DEV = false;
 const string OUTPUT_SEPERATOR = "-----------------------------\n\n";
 
 default_random_engine generator;
@@ -217,6 +217,31 @@ Matrix* refReturn(Matrix* refmat, int leftref, int downref, int dimension) {
 	return ans_mat;
 }
 
+// add a row and a col of zeroes to matrix
+void pad(Matrix* mat, int dimension) {
+
+	// pad a row at the bottom
+	vector<int> zeroes(dimension + 1, 0);
+	mat->entries.push_back(zeroes);
+
+	// pad a column on the right
+	for (int i = 0; i < dimension; i++) {
+		mat->entries[i].push_back(0);
+	}
+}
+
+// remove the last row and last col of a matrix
+void unpad(Matrix* matrix, int dimension) {
+
+	// remove last row from bottom
+	matrix->entries.pop_back();
+
+	// remove last col from right
+	for (int i = 0; i < dimension; i++) {
+		matrix->entries[i].pop_back();
+	}
+	matrix->dimension = dimension - 1;
+}
 
 Matrix* strassenMult(Matrix* mata, Matrix* matb, int dimension) {
 
@@ -226,6 +251,16 @@ Matrix* strassenMult(Matrix* mata, Matrix* matb, int dimension) {
 
         // TODO make even more modular
         // TODO need to pass in references to initial matrices for inline strass
+
+		bool padding = false;
+		
+		// if matrix is of odd dimension, pad a row and col of zeroes
+		if (dimension%2 == 1) {
+			padding = true;
+			pad(mata, dimension);
+			pad(matb, dimension);
+			dimension += 1;
+		} 
 
 		Matrix* m1a = refArith(mata, 0, 0, dimension / 2, dimension / 2, dimension / 2, true);
 		Matrix* m1b = refArith(matb, 0, 0, dimension / 2, dimension / 2, dimension / 2, true);
@@ -288,6 +323,12 @@ Matrix* strassenMult(Matrix* mata, Matrix* matb, int dimension) {
 					+ m3->entries[row][col] + m6->entries[row][col];
 			}
 		}
+		
+		// if we padded at the beginning, remove the extra zeroes
+		if (padding) {
+			unpad(ans_mat, dimension);
+		}
+
 		return ans_mat;
 	}
 }
@@ -507,21 +548,21 @@ int main(int argc, char* argv[]) {
          */
         Matrix* B = buildMatrix(infile, dimension*dimension, dimension, false);
 
-        Matrix* C = tradMult(A,B);
-        printMatrix(C);
+		Matrix* C = tradMult(A,B);
+        printMatrix(C,false);
     }
 
 	if (flag == 1) { // Testing on randomly generated matrices of arbitrary size
 
-        testingUtility(infile, dimension, true);
+        testingUtility(infile, dimension, true,true,true);
         return 0;
     }
 
     if (flag == 2) { // Run deterministic tests on Strassen and Trad
 
         // Normal
-        testingUtility(infile, dimension, false, true);
-        testingUtility(infile, dimension, false, false);
+        testingUtility(infile, dimension, false, true,true);
+        testingUtility(infile, dimension, false, false,true);
         return 0;
     }
 
