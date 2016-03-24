@@ -430,12 +430,13 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
         A = genRandMatrix(dimension);
         B = genRandMatrix(dimension);
         P_aux = instantiateMatrix(dimension / 2);
-    
+
         Matrix* C_strass = strassenMult(A, B, P_aux);
         Matrix* C_trad = tradMult(A, B);
 
         delete A;
         delete B;
+        delete P_aux;
 
         /*
          Can't "know" the correct result a priori, so we assume that if each type of
@@ -456,7 +457,7 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
         A = buildMatrix(infile, 0, dimension);
         B = buildMatrix(infile, dimension*dimension, dimension);
         P_aux = instantiateMatrix(dimension / 2);
-        
+
         Matrix* C;
 
         // Deterministic test so we can test Strassen and Trad independently of each other
@@ -470,6 +471,7 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
 
         delete A;
         delete B;
+        delete P_aux;
 
         // Left matrix built from test files
         Matrix* correct_C = buildMatrix(infile, dimension*dimension*2, dimension);
@@ -509,7 +511,11 @@ void timeMatrixFromFile(string infile, int dimension) {
     clock_t mult_start = clock();
     Matrix* C = strassenMult(A,B, P_aux);
     double mult_total = (clock() - mult_start) / (double)(CLOCKS_PER_SEC);
-    free(C);
+    
+    delete A;
+    delete B;
+    delete P_aux;
+    delete C;
 
     cout << "Construction for matrix of size " << dimension << " took " << construct_total << "s" << endl;
     cout << "Multiplication took " << mult_total << "s" << endl;
@@ -556,10 +562,10 @@ void timingUtility(int lower_bound, int upper_bound, int trials, int interval, b
             Matrix* C;
             if (using_strassen) {
                 Matrix* P_aux = instantiateMatrix(ceil(cur_matrix_dimension/2));
-                C = strassenMult(A,B,P_aux);
+                C = strassenMult(A, B, P_aux);
                 delete P_aux;
             } else {
-                C = tradMult(A,B);
+                C = tradMult(A, B);
             }
 
             double mult_total = (clock() - mult_start) / (double)(CLOCKS_PER_SEC);
@@ -607,6 +613,7 @@ int main(int argc, char* argv[]) {
         testingUtility("test33.txt", 3, false, false); // Traditional
         testingUtility("", 16, true, true); // Random Matrices
         testingUtility("", 39, true, true); // Random Matrices
+        testingUtility("", 16, true, true); // Random Matrices
         cout << "Basic Tests Pass. Executing instructions from command line." << endl << OUTPUT_SEPERATOR;
     }
 
