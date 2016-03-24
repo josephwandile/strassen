@@ -15,7 +15,7 @@
  */
 using namespace std;
 const int CUTOFF = 1;
-const bool IN_DEV = false; // Runs a couple simple tests before executing main commands as a sanity check
+const bool IN_DEV = true; // Runs a couple simple tests before executing main commands as a sanity check
 const string OUTPUT_SEPERATOR = "-----------------------------\n\n";
 
 default_random_engine generator;
@@ -521,25 +521,29 @@ int main(int argc, char* argv[]) {
     if (IN_DEV) {
 
         // Simple test cases to make sure nothing has gone totally wrong.
-        testingUtility(infile, dimension, false, true);
-        testingUtility(infile, dimension, false, false);
+        testingUtility("test33.txt", 3, false, true); // Strassen
+        testingUtility("test33.txt", 3, false, false); // Traditional
+        testingUtility("", 15, true , true); // Random Matrices
         cout << "Basic Tests Pass. Executing instructions from command line." << endl << OUTPUT_SEPERATOR;
     }
 
     if (flag == 0) { // Production settings
 
-        Matrix* A = buildMatrix(infile, 0, dimension);
-
-        // The second parameter determines where to start reading in from the text file.
-        Matrix* B = buildMatrix(infile, dimension*dimension, dimension);
-
-		Matrix* C = tradMult(A,B);
-        printMatrix(C,false);
+// TODO Configure for TFs
+//        Matrix* A = buildMatrix(infile, 0, dimension);
+//
+//        // The second parameter determines where to start reading in from the text file.
+//        Matrix* B = buildMatrix(infile, dimension*dimension, dimension);
+//
+//		Matrix* C = tradMult(A,B);
+//        printMatrix(C,false);
+        
+        return 0;
     }
 
 	if (flag == 1) { // Testing on randomly generated matrices of arbitrary size
 
-        testingUtility(infile, dimension, true,true,true);
+        testingUtility(infile, dimension, true , true, true);
         return 0;
     }
 
