@@ -404,20 +404,18 @@ void timingUtility(int lower_bound, int upper_bound, int trials, int interval, b
     cur_matrix_dimension = lower_bound;
     while(cur_matrix_dimension <= upper_bound) {
         
-        cout << "!!!!" << cur_matrix_dimension << endl;
-
         // For matrix of cur_matrix_dimension = n
         double total_mult_time = 0;
         double avg_mult_time = 0;
 
         cout << "Matrix of Size: " << cur_matrix_dimension << endl << OUTPUT_SEPERATOR;
 
-        // TODO Currently not doing anything with this construction data. Might be useful later.
-//        clock_t construct_start = clock();
+//        clock_t construct_start = clock(); TODO Use this for the analysis?
         Matrix* A = genRandMatrix(cur_matrix_dimension); // TODO Free this? Memory leaks potentially from recreating matrices again and again?
         Matrix* B = genRandMatrix(cur_matrix_dimension);
 //        double construct_time = (clock() - construct_start) / (double)(CLOCKS_PER_SEC);
-
+        
+        
         for (int trial = 0; trial < trials; trial++) {
 
             clock_t mult_start = clock();
