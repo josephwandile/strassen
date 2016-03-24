@@ -33,6 +33,8 @@
  * How low was cross-over point
  * Describe bugs and difficulties
  * What types of matrices were tested? Does it matter?
+ * m matrices generation
+ * addition occurs using references, not new matrices
 
 * Analysis
  * Building the Ms involves 10 additions/subtractions of matrices each of dim n/2. 7 multiplications.
