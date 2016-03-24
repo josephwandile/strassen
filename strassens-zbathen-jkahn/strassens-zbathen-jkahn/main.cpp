@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <ctime>
 #include <random>
+#include <math.h>
 
 
 /*
@@ -269,7 +270,7 @@ void unpad(Matrix* matrix) {
 
 
 // TODO dimension shouldn't be passed around-- each matrix should always know it's dimension
-Matrix* strassenMult(Matrix* A, Matrix* B) {
+Matrix* strassenMult(Matrix* A, Matrix* B, Matrix* P_aux) {
 
     if (A->dimension != B->dimension) {
         throw invalid_argument("strassenMult expects square matrices.");
@@ -301,78 +302,71 @@ Matrix* strassenMult(Matrix* A, Matrix* B) {
 
 		Matrix* m1a = combineSubmatrices(A, 0, 0, half_dim, half_dim, true);
 		Matrix* m1b = combineSubmatrices(B, 0, 0, half_dim, half_dim, true);
-		Matrix* m1 = strassenMult(m1a, m1b);
+        updateAuxMatrix(P_aux, strassenMult(m1a, m1b, P_aux));
 
-        modifySubmatrix(C, m1, 0, half_dim); // Add tr
-        modifySubmatrix(C, m1, half_dim, half_dim); // Add br
+        modifySubmatrix(C, P_aux, 0, half_dim); // Add tr
+        modifySubmatrix(C, P_aux, half_dim, half_dim); // Add br
 
         delete m1a;
         delete m1b;
-        delete m1;
 
 		Matrix* m2a = combineSubmatrices(A, 0, half_dim, half_dim, half_dim, true);
 		Matrix* m2b = extractSubmatrix(B, 0, 0);
-		Matrix* m2 = strassenMult(m2a, m2b);
+        updateAuxMatrix(P_aux, strassenMult(m2a, m2b, P_aux));
 
-        modifySubmatrix(C, m2, 0, 0, false); // Subtract tl
-        modifySubmatrix(C, m2, 0, half_dim); // Add tr
+        modifySubmatrix(C, P_aux, 0, 0, false); // Subtract tl
+        modifySubmatrix(C, P_aux, 0, half_dim); // Add tr
 
         delete m2a;
         delete m2b;
-        delete m2;
 
 		Matrix* m3a = extractSubmatrix(A, 0, 0);
 		Matrix* m3b = combineSubmatrices(B, half_dim, 0, half_dim, half_dim, false);
-		Matrix* m3 = strassenMult(m3a, m3b);
+        updateAuxMatrix(P_aux, strassenMult(m3a, m3b, P_aux));
 
-        modifySubmatrix(C, m3, half_dim, 0); // Add bl
-        modifySubmatrix(C, m3, half_dim, half_dim, false); // Subtract br
+        modifySubmatrix(C, P_aux, half_dim, 0); // Add bl
+        modifySubmatrix(C, P_aux, half_dim, half_dim, false); // Subtract br
 
         delete m3a;
         delete m3b;
-        delete m3;
 
 		Matrix* m4a = extractSubmatrix(A, half_dim, half_dim);
 		Matrix* m4b = combineSubmatrices(B, 0, half_dim, 0, 0, false);
-		Matrix* m4 = strassenMult(m4a, m4b);
+        updateAuxMatrix(P_aux, strassenMult(m4a, m4b, P_aux));
 
-        modifySubmatrix(C, m4, 0, 0); // Add tl
-        modifySubmatrix(C, m4, half_dim, 0); // Add bl
+        modifySubmatrix(C, P_aux, 0, 0); // Add tl
+        modifySubmatrix(C, P_aux, half_dim, 0); // Add bl
 
         delete m4a;
         delete m4b;
-        delete m4;
 
 		Matrix* m5a = combineSubmatrices(A, 0, 0, half_dim, 0, true);
 		Matrix* m5b = extractSubmatrix(B, half_dim, half_dim);
-		Matrix* m5 = strassenMult(m5a, m5b);
+        updateAuxMatrix(P_aux, strassenMult(m5a, m5b, P_aux));
 
-        modifySubmatrix(C, m5, 0, 0); // Add tl
-        modifySubmatrix(C, m5, half_dim, half_dim); // Add br
+        modifySubmatrix(C, P_aux, 0, 0); // Add tl
+        modifySubmatrix(C, P_aux, half_dim, half_dim); // Add br
 
         delete m5a;
         delete m5b;
-        delete m5;
 
 		Matrix* m6a = combineSubmatrices(A, 0, half_dim, 0, 0, false);
 		Matrix* m6b = combineSubmatrices(B, 0, 0, half_dim, 0, true);
-		Matrix* m6 = strassenMult(m6a, m6b);
+        updateAuxMatrix(P_aux, strassenMult(m6a, m6b, P_aux));
 
-        modifySubmatrix(C, m6, 0, 0); // Add tl
+        modifySubmatrix(C, P_aux, 0, 0); // Add tl
 
         delete m6a;
         delete m6b;
-        delete m6;
 
 		Matrix* m7a = combineSubmatrices(A, half_dim, 0, half_dim, half_dim, false);
 		Matrix* m7b = combineSubmatrices(B, 0, half_dim, half_dim, half_dim, true);
-		Matrix* m7 = strassenMult(m7a, m7b);
+        updateAuxMatrix(P_aux, strassenMult(m7a, m7b, P_aux));
 
-        modifySubmatrix(C, m7, half_dim, half_dim, false); // Subtract br
+        modifySubmatrix(C, P_aux, half_dim, half_dim, false); // Subtract br
 
         delete m7a;
         delete m7b;
-        delete m7;
 
 		// Remove padding if necessary
 		if (padding) {
@@ -427,6 +421,7 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
 
     Matrix* A;
     Matrix* B;
+    Matrix* P_aux;
 
     if (use_random_matrices) {
 
@@ -434,8 +429,9 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
 
         A = genRandMatrix(dimension);
         B = genRandMatrix(dimension);
-
-        Matrix* C_strass = strassenMult(A, B);
+        P_aux = instantiateMatrix(dimension / 2);
+    
+        Matrix* C_strass = strassenMult(A, B, P_aux);
         Matrix* C_trad = tradMult(A, B);
 
         delete A;
@@ -459,12 +455,14 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
 
         A = buildMatrix(infile, 0, dimension);
         B = buildMatrix(infile, dimension*dimension, dimension);
+        P_aux = instantiateMatrix(dimension / 2);
+        
         Matrix* C;
 
         // Deterministic test so we can test Strassen and Trad independently of each other
         if (using_strassen) {
             cout << "Testing Strassen" << endl;
-            C = strassenMult(A,B);
+            C = strassenMult(A,B, P_aux);
         } else {
             cout << "Testing Traditional Mult" << endl;
             C = tradMult(A,B);
@@ -503,12 +501,13 @@ void timeMatrixFromFile(string infile, int dimension) {
     clock_t construct_start = clock();
     Matrix* A = buildMatrix(infile, 0, dimension);
     Matrix* B = buildMatrix(infile, dimension*dimension, dimension);
+    Matrix* P_aux = instantiateMatrix(ceil(dimension / 2));
     double construct_total = (clock() - construct_start) / (double)(CLOCKS_PER_SEC);
 
     // Assuming we'll only want to time Strassen's method direcly from input file
     cout << "Timing Strassen from input file." << endl << OUTPUT_SEPERATOR;
     clock_t mult_start = clock();
-    Matrix* C = strassenMult(A,B);
+    Matrix* C = strassenMult(A,B, P_aux);
     double mult_total = (clock() - mult_start) / (double)(CLOCKS_PER_SEC);
     free(C);
 
@@ -556,7 +555,9 @@ void timingUtility(int lower_bound, int upper_bound, int trials, int interval, b
             clock_t mult_start = clock();
             Matrix* C;
             if (using_strassen) {
-                C = strassenMult(A,B);
+                Matrix* P_aux = instantiateMatrix(ceil(cur_matrix_dimension/2));
+                C = strassenMult(A,B,P_aux);
+                delete P_aux;
             } else {
                 C = tradMult(A,B);
             }
@@ -616,10 +617,12 @@ int main(int argc, char* argv[]) {
             // buildMatrix(filename, read_from_position, buffer_length)
             Matrix* A = buildMatrix(infile, 0, dimension);
             Matrix* B = buildMatrix(infile, dimension*dimension, dimension);
-        	Matrix* C = strassenMult(A, B);
+            Matrix* P_aux = instantiateMatrix(ceil(dimension / 2));
+        	Matrix* C = strassenMult(A, B, P_aux);
             printMatrix(C);
             delete A;
             delete B;
+            delete P_aux;
             delete C;
         }
         return 0;
