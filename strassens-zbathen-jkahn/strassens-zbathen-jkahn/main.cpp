@@ -245,10 +245,15 @@ void pad(Matrix* mat, int dimension) {
 	for (int i = 0; i < dimension; i++) {
 		mat->entries[i].push_back(0);
 	}
+
+    mat->dimension++;
 }
 
+
 // Remove the last row and last col of a matrix
-void unpad(Matrix* matrix, int dimension) {
+void unpad(Matrix* matrix) {
+
+    int dimension = matrix->dimension;
 
 	// Remove last row from bottom
 	matrix->entries.pop_back();
@@ -260,8 +265,15 @@ void unpad(Matrix* matrix, int dimension) {
 	matrix->dimension = dimension - 1;
 }
 
+
 // TODO dimension shouldn't be passed around-- each matrix should always know it's dimension
-Matrix* strassenMult(Matrix* A, Matrix* B, int dimension) {
+Matrix* strassenMult(Matrix* A, Matrix* B) {
+
+    if (A->dimension != B->dimension) {
+        throw invalid_argument("strassenMult expects square matrices.");
+    }
+
+    int dimension = A->dimension;
 
 	if (dimension <= CUTOFF){
 		return tradMult(A, B);
@@ -277,17 +289,17 @@ Matrix* strassenMult(Matrix* A, Matrix* B, int dimension) {
 			padding = true;
 			pad(A, dimension);
 			pad(B, dimension);
-			dimension += 1;
+			dimension++; // Keep local representation of dim up to date
 		}
 
-        // fill answer matrix using found m matrices
+        // Matrix to be filled and returned
         Matrix* C = instantiateMatrix(dimension);
 
         int half_dim = dimension / 2;
 
 		Matrix* m1a = combineSubmatrices(A, 0, 0, half_dim, half_dim, true);
 		Matrix* m1b = combineSubmatrices(B, 0, 0, half_dim, half_dim, true);
-		Matrix* m1 = strassenMult(m1a, m1b, half_dim);
+		Matrix* m1 = strassenMult(m1a, m1b);
 
         modifySubmatrix(C, m1, 0, half_dim); // Add tr
         modifySubmatrix(C, m1, half_dim, half_dim); // Add br
@@ -298,7 +310,7 @@ Matrix* strassenMult(Matrix* A, Matrix* B, int dimension) {
 
 		Matrix* m2a = combineSubmatrices(A, 0, half_dim, half_dim, half_dim, true);
 		Matrix* m2b = extractSubmatrix(B, 0, 0);
-		Matrix* m2 = strassenMult(m2a, m2b, half_dim);
+		Matrix* m2 = strassenMult(m2a, m2b);
 
         modifySubmatrix(C, m2, 0, 0, false); // Subtract tl
         modifySubmatrix(C, m2, 0, half_dim); // Add tr
@@ -309,7 +321,7 @@ Matrix* strassenMult(Matrix* A, Matrix* B, int dimension) {
 
 		Matrix* m3a = extractSubmatrix(A, 0, 0);
 		Matrix* m3b = combineSubmatrices(B, half_dim, 0, half_dim, half_dim, false);
-		Matrix* m3 = strassenMult(m3a, m3b, half_dim);
+		Matrix* m3 = strassenMult(m3a, m3b);
 
         modifySubmatrix(C, m3, half_dim, 0); // Add bl
         modifySubmatrix(C, m3, half_dim, half_dim, false); // Subtract br
@@ -320,7 +332,7 @@ Matrix* strassenMult(Matrix* A, Matrix* B, int dimension) {
 
 		Matrix* m4a = extractSubmatrix(A, half_dim, half_dim);
 		Matrix* m4b = combineSubmatrices(B, 0, half_dim, 0, 0, false);
-		Matrix* m4 = strassenMult(m4a, m4b, half_dim);
+		Matrix* m4 = strassenMult(m4a, m4b);
 
         modifySubmatrix(C, m4, 0, 0); // Add tl
         modifySubmatrix(C, m4, half_dim, 0); // Add bl
@@ -331,7 +343,7 @@ Matrix* strassenMult(Matrix* A, Matrix* B, int dimension) {
 
 		Matrix* m5a = combineSubmatrices(A, 0, 0, half_dim, 0, true);
 		Matrix* m5b = extractSubmatrix(B, half_dim, half_dim);
-		Matrix* m5 = strassenMult(m5a, m5b, half_dim);
+		Matrix* m5 = strassenMult(m5a, m5b);
 
         modifySubmatrix(C, m5, 0, 0); // Add tl
         modifySubmatrix(C, m5, half_dim, half_dim); // Add br
@@ -342,7 +354,7 @@ Matrix* strassenMult(Matrix* A, Matrix* B, int dimension) {
 
 		Matrix* m6a = combineSubmatrices(A, 0, half_dim, 0, 0, false);
 		Matrix* m6b = combineSubmatrices(B, 0, 0, half_dim, 0, true);
-		Matrix* m6 = strassenMult(m6a, m6b, half_dim);
+		Matrix* m6 = strassenMult(m6a, m6b);
 
         modifySubmatrix(C, m6, 0, 0); // Add tl
 
@@ -352,7 +364,7 @@ Matrix* strassenMult(Matrix* A, Matrix* B, int dimension) {
 
 		Matrix* m7a = combineSubmatrices(A, half_dim, 0, half_dim, half_dim, false);
 		Matrix* m7b = combineSubmatrices(B, 0, half_dim, half_dim, half_dim, true);
-		Matrix* m7 = strassenMult(m7a, m7b, half_dim);
+		Matrix* m7 = strassenMult(m7a, m7b);
 
         modifySubmatrix(C, m7, half_dim, half_dim, false); // Subtract br
 
@@ -360,9 +372,9 @@ Matrix* strassenMult(Matrix* A, Matrix* B, int dimension) {
         delete m7b;
         delete m7;
 
-		// if we padded at the beginning, remove the extra zeroes
+		// Remove padding if necessary
 		if (padding) {
-			unpad(C, dimension);
+			unpad(C);
 		}
 
 		return C;
@@ -416,12 +428,12 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
 
     if (use_random_matrices) {
 
-        cout << "Testing randomly generated matrices of size: " << dimension << endl << OUTPUT_SEPERATOR;
+        cout << "Testing randomly generated matrices of size: " << dimension << endl;
 
         A = genRandMatrix(dimension);
         B = genRandMatrix(dimension);
 
-        Matrix* C_strass = strassenMult(A, B, dimension);
+        Matrix* C_strass = strassenMult(A, B);
         Matrix* C_trad = tradMult(A, B);
 
         delete A;
@@ -450,7 +462,7 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
         // Deterministic test so we can test Strassen and Trad independently of each other
         if (using_strassen) {
             cout << "Testing Strassen" << endl;
-            C = strassenMult(A,B, dimension);
+            C = strassenMult(A,B);
         } else {
             cout << "Testing Traditional Mult" << endl;
             C = tradMult(A,B);
@@ -494,7 +506,7 @@ void timeMatrixFromFile(string infile, int dimension) {
     // Assuming we'll only want to time Strassen's method direcly from input file
     cout << "Timing Strassen from input file." << endl << OUTPUT_SEPERATOR;
     clock_t mult_start = clock();
-    Matrix* C = strassenMult(A,B, dimension);
+    Matrix* C = strassenMult(A,B);
     double mult_total = (clock() - mult_start) / (double)(CLOCKS_PER_SEC);
     free(C);
 
@@ -542,7 +554,7 @@ void timingUtility(int lower_bound, int upper_bound, int trials, int interval, b
             clock_t mult_start = clock();
             Matrix* C;
             if (using_strassen) {
-                C = strassenMult(A,B, cur_matrix_dimension);
+                C = strassenMult(A,B);
             } else {
                 C = tradMult(A,B);
             }
@@ -590,7 +602,8 @@ int main(int argc, char* argv[]) {
         // Simple test cases to make sure nothing has gone totally wrong.
         testingUtility("test33.txt", 3, false, true); // Strassen
         testingUtility("test33.txt", 3, false, false); // Traditional
-        testingUtility("", 15, true , true); // Random Matrices
+        testingUtility("", 16, true, true); // Random Matrices
+        testingUtility("", 39, true, true); // Random Matrices
         cout << "Basic Tests Pass. Executing instructions from command line." << endl << OUTPUT_SEPERATOR;
     }
 
@@ -601,7 +614,7 @@ int main(int argc, char* argv[]) {
             // buildMatrix(filename, read_from_position, buffer_length)
             Matrix* A = buildMatrix(infile, 0, dimension);
             Matrix* B = buildMatrix(infile, dimension*dimension, dimension);
-        	Matrix* C = strassenMult(A, B, dimension);
+        	Matrix* C = strassenMult(A, B);
             printMatrix(C);
             delete A;
             delete B;
