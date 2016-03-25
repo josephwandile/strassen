@@ -15,7 +15,7 @@
 
  */
 using namespace std;
-const int CUTOFF = 2;
+const int CUTOFF = 1;
 const bool IN_DEV = true; // Runs a couple simple tests before executing main commands as a sanity check
 const string OUTPUT_SEPERATOR = "-----------------------------\n\n";
 
@@ -237,7 +237,9 @@ void modifyC(Matrix* C, int P_i) {}
 
 
 // add a row and a col of zeroes to matrix
-void pad(Matrix* mat, int dimension) {
+void pad(Matrix* mat) {
+
+    int dimension = mat->dimension;
 
 	// Pad a row at the bottom
 	vector<int> zeroes(dimension + 1, 0);
@@ -289,8 +291,8 @@ Matrix* strassenMult(Matrix* A, Matrix* B) {
 		// If matrix is of odd dimension, pad a row and col of zeroes
 		if ((dimension & 1) != 0) {
 			padding = true;
-			pad(A, dimension);
-			pad(B, dimension);
+			pad(A);
+			pad(B);
 			dimension++; // Keep local representation of dim up to date
 		}
 
@@ -303,7 +305,7 @@ Matrix* strassenMult(Matrix* A, Matrix* B) {
 		Matrix* m1b = combineSubmatrices(B, 0, 0, half_dim, half_dim, true);
 		Matrix* m1 = strassenMult(m1a, m1b);
 
-        modifySubmatrix(C, m1, 0, half_dim); // Add tr
+        modifySubmatrix(C, m1, 0, 0); // Add tl
         modifySubmatrix(C, m1, half_dim, half_dim); // Add br
 
         delete m1a;
@@ -314,8 +316,8 @@ Matrix* strassenMult(Matrix* A, Matrix* B) {
 		Matrix* m2b = extractSubmatrix(B, 0, 0);
 		Matrix* m2 = strassenMult(m2a, m2b);
 
-        modifySubmatrix(C, m2, 0, 0, false); // Subtract tl
-        modifySubmatrix(C, m2, 0, half_dim); // Add tr
+        modifySubmatrix(C, m2, half_dim, 0); // Add bl
+        modifySubmatrix(C, m2, half_dim, half_dim, false); // Subtract br
 
         delete m2a;
         delete m2b;
@@ -325,8 +327,8 @@ Matrix* strassenMult(Matrix* A, Matrix* B) {
 		Matrix* m3b = combineSubmatrices(B, half_dim, 0, half_dim, half_dim, false);
 		Matrix* m3 = strassenMult(m3a, m3b);
 
-        modifySubmatrix(C, m3, half_dim, 0); // Add bl
-        modifySubmatrix(C, m3, half_dim, half_dim, false); // Subtract br
+        modifySubmatrix(C, m3, 0, half_dim); // Add tr
+        modifySubmatrix(C, m3, half_dim, half_dim); // Add br
 
         delete m3a;
         delete m3b;
@@ -347,8 +349,8 @@ Matrix* strassenMult(Matrix* A, Matrix* B) {
 		Matrix* m5b = extractSubmatrix(B, half_dim, half_dim);
 		Matrix* m5 = strassenMult(m5a, m5b);
 
-        modifySubmatrix(C, m5, 0, 0); // Add tl
-        modifySubmatrix(C, m5, half_dim, half_dim); // Add br
+        modifySubmatrix(C, m5, 0, 0, false); // Subtract tl
+        modifySubmatrix(C, m5, 0, half_dim); // Add tr
 
         delete m5a;
         delete m5b;
@@ -358,7 +360,7 @@ Matrix* strassenMult(Matrix* A, Matrix* B) {
 		Matrix* m6b = combineSubmatrices(B, 0, 0, half_dim, 0, true);
 		Matrix* m6 = strassenMult(m6a, m6b);
 
-        modifySubmatrix(C, m6, 0, 0); // Add tl
+        modifySubmatrix(C, m6, half_dim, half_dim); // Add br
 
         delete m6a;
         delete m6b;
@@ -368,7 +370,7 @@ Matrix* strassenMult(Matrix* A, Matrix* B) {
 		Matrix* m7b = combineSubmatrices(B, 0, half_dim, half_dim, half_dim, true);
 		Matrix* m7 = strassenMult(m7a, m7b);
 
-        modifySubmatrix(C, m7, half_dim, half_dim, false); // Subtract br
+        modifySubmatrix(C, m7, 0, 0); // Add tl
 
         delete m7a;
         delete m7b;
@@ -432,11 +434,19 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
 
         cout << "Testing randomly generated matrices of size: " << dimension << endl;
 
+        /*
+         Once upon time, there was a terrible, terrible bug.
+         
+         Which taught two young lads of yore, never to share global variables 
+         between functions. 
+         
+         Amen
+         */
         A = genRandMatrix(dimension);
         B = genRandMatrix(dimension);
 
-        Matrix* C_strass = strassenMult(A, B);
         Matrix* C_trad = tradMult(A, B);
+        Matrix* C_strass = strassenMult(A, B);
 
         delete A;
         delete B;
@@ -446,10 +456,10 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
          matrix multiplication is working correcly that they will return the same result
          */
         if (printing_matrix) {
-            printMatrix(C_strass, false);
             printMatrix(C_trad, false);
+            printMatrix(C_strass, false);
         }
-        
+
         assert(matricesAreEqual(C_strass, C_trad));
 
         delete C_strass;
@@ -476,12 +486,12 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
         // Left matrix built from test files
         Matrix* correct_C = buildMatrix(infile, dimension*dimension*2, dimension);
 
-        assert(matricesAreEqual(correct_C, C));
-
         if (printing_matrix) {
-            printMatrix(C);
-            printMatrix(correct_C);
+            printMatrix(C, false);
+            printMatrix(correct_C, false);
         }
+
+        assert(matricesAreEqual(correct_C, C));
 
         delete C;
         delete correct_C;
@@ -600,14 +610,12 @@ int main(int argc, char* argv[]) {
     string infile = argv[3];
 
     if (IN_DEV) {
-        
-        // Simple test cases to make sure nothing has gone totally wrong.
-//        testingUtility("test33.txt", 3, false, true); // Strassen
-//        testingUtility("test33.txt", 3, false, false); // Traditional
-        testingUtility("", 4, true, true, true); // Random Matrices
 
-//        testingUtility("", 16, true, true); // Random Matrices
-//        testingUtility("", 39, true, true); // Random Matrices
+        // Simple test cases to make sure nothing has gone totally wrong.
+        testingUtility("test33.txt", 3, false, true); // Strassen
+        testingUtility("test33.txt", 3, false, false); // Traditional
+        testingUtility("", 39, true, true); // Random Matrices
+        testingUtility("", 16, true, true); // Random Matrices
         cout << "Basic Tests Pass. Executing instructions from command line." << endl << OUTPUT_SEPERATOR;
     }
 
