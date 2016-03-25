@@ -13,7 +13,7 @@
 /*
 
  PROGRAM SETUP
- 
+
  */
 
 using namespace std;
@@ -204,20 +204,23 @@ void updateAuxMatrix(Matrix* P_aux, Matrix* P_new) {
     P_aux->dimension = P_new->dimension;
 
     for (int i = 0; i < P_new->dimension; i++) {
-        for (int j = 0; j < P_new->dimension; i++) { // TODO tidy this up when bug killed
-            int temp = P_new->entries[i][j];
-            P_aux->entries[i][j] = temp;
+        for (int j = 0; j < P_new->dimension; j++) {
+            P_aux->entries[i][j] = P_new->entries[i][j];
         }
     }
 }
 
 
+/*
+ Adds or subtracts relevant submatrix of P to the submatrix of C defined
+ by i, j and the dimension of C
+ */
 void modifySubmatrix(Matrix* C, Matrix* P, int i, int j, bool adding=true) {
 
     int row, col;
 
+    // cout << "Adding? " <<  adding << " dimension " << P->dimension << endl;
     if (adding) {
-
         for (row = 0; row < P->dimension; row++) {
             for (col = 0; col < P->dimension; col++) {
                 C->entries[i + row][j + col] += P->entries[row][col];
@@ -303,6 +306,7 @@ Matrix* strassenMult(Matrix* A, Matrix* B, Matrix* P_aux) {
 
         int half_dim = dimension / 2;
 
+        // TODO
 		Matrix* m1a = combineSubmatrices(A, 0, 0, half_dim, half_dim, true);
 		Matrix* m1b = combineSubmatrices(B, 0, 0, half_dim, half_dim, true);
         updateAuxMatrix(P_aux, strassenMult(m1a, m1b, P_aux));
@@ -408,11 +412,11 @@ bool matricesAreEqual(Matrix* A, Matrix* B) {
 
 void testingUtility(string infile, int dimension, bool use_random_matrices=true, bool using_strassen=true, bool printing_matrix=false) {
 
-    Matrix* A;
-    Matrix* B;
-    Matrix* P_aux;
-
     if (use_random_matrices) {
+
+        Matrix* A;
+        Matrix* B;
+        Matrix* P_aux;
 
         cout << "Testing randomly generated matrices of size: " << dimension << endl;
 
@@ -426,7 +430,7 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
          */
         A = genRandMatrix(dimension);
         B = genRandMatrix(dimension);
-        P_aux = instantiateMatrix(ceil(dimension / 2));
+        P_aux = instantiateMatrix(dimension);
 
         Matrix* C_trad = tradMult(A, B);
         Matrix* C_strass = strassenMult(A, B, P_aux);
@@ -451,9 +455,13 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
 
     } else {
 
+        Matrix* A;
+        Matrix* B;
+        Matrix* P_aux;
+
         A = buildMatrix(infile, 0, dimension);
         B = buildMatrix(infile, dimension*dimension, dimension);
-        P_aux = instantiateMatrix(ceil(dimension / 2));
+        P_aux = instantiateMatrix(dimension);
 
         Matrix* C;
 
@@ -500,7 +508,7 @@ void timeMatrixFromFile(string infile, int dimension) {
     clock_t construct_start = clock();
     Matrix* A = buildMatrix(infile, 0, dimension);
     Matrix* B = buildMatrix(infile, dimension*dimension, dimension);
-    Matrix* P_aux = instantiateMatrix(ceil(dimension / 2));
+    Matrix* P_aux = instantiateMatrix(dimension);
     double construct_total = (clock() - construct_start) / (double)(CLOCKS_PER_SEC);
 
     // Assuming we'll only want to time Strassen's method direcly from input file
@@ -558,7 +566,7 @@ void timingUtility(int lower_bound, int upper_bound, int trials, int interval, b
             clock_t mult_start = clock();
             Matrix* C;
             if (using_strassen) {
-                Matrix* P_aux = instantiateMatrix(ceil(cur_matrix_dimension / 2));
+                Matrix* P_aux = instantiateMatrix(cur_matrix_dimension);
                 C = strassenMult(A, B, P_aux);
                 delete P_aux;
             } else {
@@ -606,10 +614,13 @@ int main(int argc, char* argv[]) {
     if (IN_DEV) {
 
         // Simple test cases to make sure nothing has gone totally wrong.
-        testingUtility("test33.txt", 3, false, true); // Strassen
-        testingUtility("test33.txt", 3, false, false); // Traditional
+//        testingUtility("test33.txt", 3, false, true); // Strassen
+        testingUtility("test4d.txt", 4, false, true); // Strassen
+
+//        testingUtility("test33.txt", 3, false, false); // Traditional
         testingUtility("", 39, true, true); // Random Matrices
-        testingUtility("", 16, true, true); // Random Matrices
+//        testingUtility("", 16, true, true); // Random Matrices
+//        testingUtility("", 1024, true, true); // Random Matrices
         cout << "Basic Tests Pass. Executing instructions from command line." << endl << OUTPUT_SEPERATOR;
     }
 
@@ -620,7 +631,7 @@ int main(int argc, char* argv[]) {
             // buildMatrix(filename, read_from_position, buffer_length)
             Matrix* A = buildMatrix(infile, 0, dimension);
             Matrix* B = buildMatrix(infile, dimension*dimension, dimension);
-            Matrix* P_aux = instantiateMatrix(ceil(dimension / 2));
+            Matrix* P_aux = instantiateMatrix(dimension);
         	Matrix* C = strassenMult(A, B, P_aux);
             printMatrix(C);
             delete A;
