@@ -16,7 +16,7 @@
 
  */
 using namespace std;
-const int CUTOFF = 16; // TODO Should probably be set to 1 for debugging Strassen's
+const int CUTOFF = 1;
 const bool IN_DEV = true; // Runs a couple simple tests before executing main commands as a sanity check
 const string OUTPUT_SEPERATOR = "-----------------------------\n\n";
 
@@ -198,7 +198,7 @@ void updateAuxMatrix(Matrix* P_aux, Matrix* P_new) {
 
     /*
      We only ever need to look at some square matrix in the
-     upper right corner of P_aux, so adjust dimension accordingly
+     upper left corner of P_aux, so adjust dimension accordingly
      */
     P_aux->dimension = P_new->dimension;
 
@@ -239,7 +239,9 @@ void modifyC(Matrix* C, int P_i) {}
 
 
 // add a row and a col of zeroes to matrix
-void pad(Matrix* mat, int dimension) {
+void pad(Matrix* mat) {
+
+    int dimension = mat->dimension;
 
 	// Pad a row at the bottom
 	vector<int> zeroes(dimension + 1, 0);
@@ -270,7 +272,6 @@ void unpad(Matrix* matrix) {
 }
 
 
-// TODO dimension shouldn't be passed around-- each matrix should always know it's dimension
 Matrix* strassenMult(Matrix* A, Matrix* B, Matrix* P_aux) {
 
     if (A->dimension != B->dimension) {
@@ -291,8 +292,8 @@ Matrix* strassenMult(Matrix* A, Matrix* B, Matrix* P_aux) {
 		// If matrix is of odd dimension, pad a row and col of zeroes
 		if ((dimension & 1) != 0) {
 			padding = true;
-			pad(A, dimension);
-			pad(B, dimension);
+			pad(A);
+			pad(B);
 			dimension++; // Keep local representation of dim up to date
 		}
 
@@ -304,68 +305,54 @@ Matrix* strassenMult(Matrix* A, Matrix* B, Matrix* P_aux) {
 		Matrix* m1a = combineSubmatrices(A, 0, 0, half_dim, half_dim, true);
 		Matrix* m1b = combineSubmatrices(B, 0, 0, half_dim, half_dim, true);
         updateAuxMatrix(P_aux, strassenMult(m1a, m1b, P_aux));
-
-        modifySubmatrix(C, P_aux, 0, half_dim); // Add tr
-        modifySubmatrix(C, P_aux, half_dim, half_dim); // Add br
-
+        modifySubmatrix(C, m1, 0, 0); // Add tl
+        modifySubmatrix(C, m1, half_dim, half_dim); // Add br
         delete m1a;
         delete m1b;
 
 		Matrix* m2a = combineSubmatrices(A, 0, half_dim, half_dim, half_dim, true);
 		Matrix* m2b = extractSubmatrix(B, 0, 0);
         updateAuxMatrix(P_aux, strassenMult(m2a, m2b, P_aux));
-
-        modifySubmatrix(C, P_aux, 0, 0, false); // Subtract tl
-        modifySubmatrix(C, P_aux, 0, half_dim); // Add tr
-
+        modifySubmatrix(C, m2, half_dim, 0); // Add bl
+        modifySubmatrix(C, m2, half_dim, half_dim, false); // Subtract br
         delete m2a;
         delete m2b;
 
 		Matrix* m3a = extractSubmatrix(A, 0, 0);
 		Matrix* m3b = combineSubmatrices(B, half_dim, 0, half_dim, half_dim, false);
         updateAuxMatrix(P_aux, strassenMult(m3a, m3b, P_aux));
-
-        modifySubmatrix(C, P_aux, half_dim, 0); // Add bl
-        modifySubmatrix(C, P_aux, half_dim, half_dim, false); // Subtract br
-
+        modifySubmatrix(C, m3, 0, half_dim); // Add tr
+        modifySubmatrix(C, m3, half_dim, half_dim); // Add br
         delete m3a;
         delete m3b;
 
 		Matrix* m4a = extractSubmatrix(A, half_dim, half_dim);
 		Matrix* m4b = combineSubmatrices(B, 0, half_dim, 0, 0, false);
         updateAuxMatrix(P_aux, strassenMult(m4a, m4b, P_aux));
-
         modifySubmatrix(C, P_aux, 0, 0); // Add tl
         modifySubmatrix(C, P_aux, half_dim, 0); // Add bl
-
         delete m4a;
         delete m4b;
 
 		Matrix* m5a = combineSubmatrices(A, 0, 0, half_dim, 0, true);
 		Matrix* m5b = extractSubmatrix(B, half_dim, half_dim);
         updateAuxMatrix(P_aux, strassenMult(m5a, m5b, P_aux));
-
-        modifySubmatrix(C, P_aux, 0, 0); // Add tl
-        modifySubmatrix(C, P_aux, half_dim, half_dim); // Add br
-
+        modifySubmatrix(C, m5, 0, 0, false); // Subtract tl
+        modifySubmatrix(C, m5, 0, half_dim); // Add tr
         delete m5a;
         delete m5b;
 
 		Matrix* m6a = combineSubmatrices(A, 0, half_dim, 0, 0, false);
 		Matrix* m6b = combineSubmatrices(B, 0, 0, half_dim, 0, true);
         updateAuxMatrix(P_aux, strassenMult(m6a, m6b, P_aux));
-
-        modifySubmatrix(C, P_aux, 0, 0); // Add tl
-
+        modifySubmatrix(C, m6, half_dim, half_dim); // Add br
         delete m6a;
         delete m6b;
 
 		Matrix* m7a = combineSubmatrices(A, half_dim, 0, half_dim, half_dim, false);
 		Matrix* m7b = combineSubmatrices(B, 0, half_dim, half_dim, half_dim, true);
         updateAuxMatrix(P_aux, strassenMult(m7a, m7b, P_aux));
-
-        modifySubmatrix(C, P_aux, half_dim, half_dim, false); // Subtract br
-
+        modifySubmatrix(C, m7, 0, 0); // Add tl
         delete m7a;
         delete m7b;
 
@@ -428,12 +415,20 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
 
         cout << "Testing randomly generated matrices of size: " << dimension << endl;
 
+        /*
+         Once upon time, there was a terrible, terrible bug.
+
+         Which taught two young lads of yore, never to share global variables
+         between functions.
+
+         Amen
+         */
         A = genRandMatrix(dimension);
         B = genRandMatrix(dimension);
         P_aux = instantiateMatrix(ceil(dimension / 2));
 
-        Matrix* C_strass = strassenMult(A, B, P_aux);
         Matrix* C_trad = tradMult(A, B);
+        Matrix* C_strass = strassenMult(A, B, P_aux);
 
         delete A;
         delete B;
@@ -443,12 +438,12 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
          Can't "know" the correct result a priori, so we assume that if each type of
          matrix multiplication is working correcly that they will return the same result
          */
-//        assert(matricesAreEqual(C_strass, C_trad));
-
         if (printing_matrix) {
-            printMatrix(C_strass);
-            printMatrix(C_trad);
+            printMatrix(C_trad, false);
+            printMatrix(C_strass, false);
         }
+
+        assert(matricesAreEqual(C_strass, C_trad));
 
         delete C_strass;
         delete C_trad;
@@ -477,12 +472,12 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
         // Left matrix built from test files
         Matrix* correct_C = buildMatrix(infile, dimension*dimension*2, dimension);
 
-        assert(matricesAreEqual(correct_C, C));
-
         if (printing_matrix) {
-            printMatrix(C);
-            printMatrix(correct_C);
+            printMatrix(C, false);
+            printMatrix(correct_C, false);
         }
+
+        assert(matricesAreEqual(correct_C, C));
 
         delete C;
         delete correct_C;
@@ -610,12 +605,10 @@ int main(int argc, char* argv[]) {
     if (IN_DEV) {
 
         // Simple test cases to make sure nothing has gone totally wrong.
-//        testingUtility("test33.txt", 3, false, true); // Strassen
-//        testingUtility("test33.txt", 3, false, false); // Traditional
-//        testingUtility("", 16, true, true); // Random Matrices
-//        testingUtility("", 39, true, true); // Random Matrices
-//        testingUtility("", 16, true, true); // Random Matrices
-        testingUtility("", 17, true, true);
+        testingUtility("test33.txt", 3, false, true); // Strassen
+        testingUtility("test33.txt", 3, false, false); // Traditional
+        testingUtility("", 39, true, true); // Random Matrices
+        testingUtility("", 16, true, true); // Random Matrices
         cout << "Basic Tests Pass. Executing instructions from command line." << endl << OUTPUT_SEPERATOR;
     }
 
