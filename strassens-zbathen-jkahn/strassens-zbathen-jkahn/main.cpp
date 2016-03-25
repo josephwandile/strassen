@@ -18,7 +18,7 @@
 
 using namespace std;
 int CUTOFF = 16;
-const bool IN_DEV = true; // Runs a couple simple tests before executing main commands as a sanity check
+const bool IN_DEV = false; // Runs a couple simple tests before executing main commands as a sanity check
 const string OUTPUT_SEPERATOR = "-----------------------------\n\n";
 
 default_random_engine generator;
@@ -208,6 +208,8 @@ void updateAuxMatrix(Matrix* P_aux, Matrix* P_new) {
             P_aux->entries[i][j] = P_new->entries[i][j];
         }
     }
+
+    delete P_new;
 }
 
 
@@ -236,10 +238,6 @@ void modifySubmatrix(Matrix* C, Matrix* P, int i, int j, bool adding=true) {
         }
     }
 }
-
-
-// Hardcoded to deal with Strassen's messiness
-void modifyC(Matrix* C, int P_i) {}
 
 
 // add a row and a col of zeroes to matrix
@@ -520,6 +518,59 @@ void timeMatrixFromFile(string infile, int dimension) {
     cout << "Multiplication took " << mult_total << "s" << endl;
 }
 
+void timeStrassen() {
+
+    int test_dimension_vals[] = {2, 5, 10, 15, 32, 64, 99, 110, 150, 200, 250, 348, 513, 1022, 1025};
+    std::vector<int> test_dimensions (test_dimension_vals, test_dimension_vals + sizeof(test_dimension_vals) / sizeof(int) );
+
+    for (int i = 0; i< test_dimensions.size(); i++) {
+
+        int cur_best_cut_off = 1;
+        int cur_dim = test_dimensions[i];
+
+        Matrix* A = genRandMatrix(cur_dim);
+        Matrix* B = genRandMatrix(cur_dim);
+
+        double total_time_of_mins = 0;
+        for (int trial = 0; trial < 5; trial++) {
+
+            double cur_record_time = 10000; // Guaranteed slower than any matrix multiplication of reasonable dimension.
+            int less_optimal_counter = 0;
+
+            for (int cut_off = cur_best_cut_off; cut_off < cur_dim; cut_off++) {
+
+                if (less_optimal_counter > 10) {
+                    break; // Probably past the local min
+                }
+
+                clock_t start_mult = clock();
+                CUTOFF = cut_off;
+                Matrix* P_aux = instantiateMatrix(cur_dim);
+                Matrix* C = strassenMult(A, B, P_aux);
+                delete P_aux;
+                delete C;
+                double mult_time = (clock() - start_mult) / (double)(CLOCKS_PER_SEC);
+
+                if (mult_time < cur_record_time) {
+                    cur_record_time = mult_time;
+                    cur_best_cut_off = cut_off; // We just want the min here-- not the average
+                    less_optimal_counter = 0; // Accounts for variance
+                } else {
+                    less_optimal_counter++; // No need to keep going if passed local minimum
+                }
+            }
+            total_time_of_mins += cur_record_time;
+        }
+
+        double avg_time_of_mins = total_time_of_mins / 5;
+        delete A;
+        delete B;
+
+        // TODO Output to file
+        cout << "For dimension of " << cur_dim << " the best cut off from all trials was " << cur_best_cut_off << " and the average mimal time was " << avg_time_of_mins << endl << OUTPUT_SEPERATOR;
+    }
+}
+
 
 void timingUtility(int lower_bound, int upper_bound, int trials, int interval, bool using_strassen=true) {
 
@@ -603,6 +654,12 @@ int main(int argc, char* argv[]) {
 
     int flag = stoi(argv[1]);
     int dimension = stoi(argv[2]);
+
+    if (dimension < 1) {
+        cout << "Please stop trying to break the code.";
+        return -1;
+    }
+
     string infile = argv[3];
 
     if (IN_DEV) {
@@ -634,30 +691,29 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-	if (flag == 1) { // Testing on randomly generated matrices of arbitrary size
+    /*
+     Flags one and 2 execute functions with params:
 
-        testingUtility(infile, dimension, true , true, true);
-        return 0;
-    }
-
-    if (flag == 2) { // Run deterministic tests on Strassen and Trad
-
-        // Normal
-        testingUtility(infile, dimension, false, true, true);
-        testingUtility(infile, dimension, false, false, true);
-
-        return 0;
-    }
-
-    if (flag == 3) { // Generate time data for Strassen
+       lowest_n, highest_n, num_trials, interval, using_strassan=true
+    */
+    if (flag == 1) { // Generate custom time data for Strassen
 
         // Strassen
         timingUtility(dimension, dimension, 1, 1, true);
+        return 0;
     }
 
-    if (flag == 4) { // Generate time data for Trad
+    if (flag == 2) { // Generate custom time data for Trad
 
         // Traditional
-        timingUtility(dimension, dimension, 1, 1, false);
+        timingUtility(2, dimension, 5, 50, false);
+        return 0;
+    }
+
+    if (flag == 3) {
+
+        // Hardcoded data generation for Strassan cutoff
+        timeStrassen();
+        return 0;
     }
 }
