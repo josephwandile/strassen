@@ -17,7 +17,7 @@
  */
 
 using namespace std;
-const int CUTOFF = 1;
+int CUTOFF;
 const bool IN_DEV = true; // Runs a couple simple tests before executing main commands as a sanity check
 const string OUTPUT_SEPERATOR = "-----------------------------\n\n";
 
@@ -613,14 +613,14 @@ int main(int argc, char* argv[]) {
 
     if (IN_DEV) {
 
+        CUTOFF = 1;
+        
         // Simple test cases to make sure nothing has gone totally wrong.
-//        testingUtility("test33.txt", 3, false, true); // Strassen
+        testingUtility("test33.txt", 3, false, true); // Strassen
         testingUtility("test4d.txt", 4, false, true); // Strassen
-
-//        testingUtility("test33.txt", 3, false, false); // Traditional
+        testingUtility("test33.txt", 3, false, false); // Traditional
         testingUtility("", 39, true, true); // Random Matrices
-//        testingUtility("", 16, true, true); // Random Matrices
-//        testingUtility("", 1024, true, true); // Random Matrices
+        testingUtility("", 16, true, true); // Random Matrices
         cout << "Basic Tests Pass. Executing instructions from command line." << endl << OUTPUT_SEPERATOR;
     }
 
