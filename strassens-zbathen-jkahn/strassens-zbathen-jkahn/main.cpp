@@ -17,7 +17,7 @@
  */
 
 using namespace std;
-int CUTOFF = 512;
+int CUTOFF = 16;
 const bool IN_DEV = false; // Runs a couple simple tests before executing main commands as a sanity check
 const string OUTPUT_SEPERATOR = "-----------------------------\n\n";
 
