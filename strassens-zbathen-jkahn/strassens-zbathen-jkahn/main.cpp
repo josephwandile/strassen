@@ -13,8 +13,9 @@
 /*
 
  PROGRAM SETUP
-
+ 
  */
+
 using namespace std;
 const int CUTOFF = 1;
 const bool IN_DEV = true; // Runs a couple simple tests before executing main commands as a sanity check
@@ -305,24 +306,24 @@ Matrix* strassenMult(Matrix* A, Matrix* B, Matrix* P_aux) {
 		Matrix* m1a = combineSubmatrices(A, 0, 0, half_dim, half_dim, true);
 		Matrix* m1b = combineSubmatrices(B, 0, 0, half_dim, half_dim, true);
         updateAuxMatrix(P_aux, strassenMult(m1a, m1b, P_aux));
-        modifySubmatrix(C, m1, 0, 0); // Add tl
-        modifySubmatrix(C, m1, half_dim, half_dim); // Add br
+        modifySubmatrix(C, P_aux, 0, 0); // Add tl
+        modifySubmatrix(C, P_aux, half_dim, half_dim); // Add br
         delete m1a;
         delete m1b;
 
 		Matrix* m2a = combineSubmatrices(A, 0, half_dim, half_dim, half_dim, true);
 		Matrix* m2b = extractSubmatrix(B, 0, 0);
         updateAuxMatrix(P_aux, strassenMult(m2a, m2b, P_aux));
-        modifySubmatrix(C, m2, half_dim, 0); // Add bl
-        modifySubmatrix(C, m2, half_dim, half_dim, false); // Subtract br
+        modifySubmatrix(C, P_aux, half_dim, 0); // Add bl
+        modifySubmatrix(C, P_aux, half_dim, half_dim, false); // Subtract br
         delete m2a;
         delete m2b;
 
 		Matrix* m3a = extractSubmatrix(A, 0, 0);
 		Matrix* m3b = combineSubmatrices(B, half_dim, 0, half_dim, half_dim, false);
         updateAuxMatrix(P_aux, strassenMult(m3a, m3b, P_aux));
-        modifySubmatrix(C, m3, 0, half_dim); // Add tr
-        modifySubmatrix(C, m3, half_dim, half_dim); // Add br
+        modifySubmatrix(C, P_aux, 0, half_dim); // Add tr
+        modifySubmatrix(C, P_aux, half_dim, half_dim); // Add br
         delete m3a;
         delete m3b;
 
@@ -337,22 +338,22 @@ Matrix* strassenMult(Matrix* A, Matrix* B, Matrix* P_aux) {
 		Matrix* m5a = combineSubmatrices(A, 0, 0, half_dim, 0, true);
 		Matrix* m5b = extractSubmatrix(B, half_dim, half_dim);
         updateAuxMatrix(P_aux, strassenMult(m5a, m5b, P_aux));
-        modifySubmatrix(C, m5, 0, 0, false); // Subtract tl
-        modifySubmatrix(C, m5, 0, half_dim); // Add tr
+        modifySubmatrix(C, P_aux, 0, 0, false); // Subtract tl
+        modifySubmatrix(C, P_aux, 0, half_dim); // Add tr
         delete m5a;
         delete m5b;
 
 		Matrix* m6a = combineSubmatrices(A, 0, half_dim, 0, 0, false);
 		Matrix* m6b = combineSubmatrices(B, 0, 0, half_dim, 0, true);
         updateAuxMatrix(P_aux, strassenMult(m6a, m6b, P_aux));
-        modifySubmatrix(C, m6, half_dim, half_dim); // Add br
+        modifySubmatrix(C, P_aux, half_dim, half_dim); // Add br
         delete m6a;
         delete m6b;
 
 		Matrix* m7a = combineSubmatrices(A, half_dim, 0, half_dim, half_dim, false);
 		Matrix* m7b = combineSubmatrices(B, 0, half_dim, half_dim, half_dim, true);
         updateAuxMatrix(P_aux, strassenMult(m7a, m7b, P_aux));
-        modifySubmatrix(C, m7, 0, 0); // Add tl
+        modifySubmatrix(C, P_aux, 0, 0); // Add tl
         delete m7a;
         delete m7b;
 
