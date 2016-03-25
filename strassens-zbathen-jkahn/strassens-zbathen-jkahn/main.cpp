@@ -17,7 +17,7 @@
  */
 
 using namespace std;
-int CUTOFF;
+int CUTOFF = 512;
 const bool IN_DEV = true; // Runs a couple simple tests before executing main commands as a sanity check
 const string OUTPUT_SEPERATOR = "-----------------------------\n\n";
 
@@ -307,53 +307,59 @@ Matrix* strassenMult(Matrix* A, Matrix* B, Matrix* P_aux) {
         int half_dim = dimension / 2;
 
         // TODO
-		Matrix* a = combineSubmatrices(A, 0, 0, half_dim, half_dim, true);
-		Matrix* b = combineSubmatrices(B, 0, 0, half_dim, half_dim, true);
-        updateAuxMatrix(P_aux, strassenMult(a, b, P_aux));
+		Matrix* m1a = combineSubmatrices(A, 0, 0, half_dim, half_dim, true);
+		Matrix* m1b = combineSubmatrices(B, 0, 0, half_dim, half_dim, true);
+        updateAuxMatrix(P_aux, strassenMult(m1a, m1b, P_aux));
         modifySubmatrix(C, P_aux, 0, 0); // Add tl
         modifySubmatrix(C, P_aux, half_dim, half_dim); // Add br
+        delete m1a;
+        delete m1b;
 
-		a = combineSubmatrices(A, 0, half_dim, half_dim, half_dim, true);
-		b = extractSubmatrix(B, 0, 0);
-        updateAuxMatrix(P_aux, strassenMult(a, b, P_aux));
+		Matrix* m2a = combineSubmatrices(A, 0, half_dim, half_dim, half_dim, true);
+		Matrix* m2b = extractSubmatrix(B, 0, 0);
+        updateAuxMatrix(P_aux, strassenMult(m2a, m2b, P_aux));
         modifySubmatrix(C, P_aux, half_dim, 0); // Add bl
         modifySubmatrix(C, P_aux, half_dim, half_dim, false); // Subtract br
+        delete m2a;
+        delete m2b;
 
-
-		a = extractSubmatrix(A, 0, 0);
-		b = combineSubmatrices(B, half_dim, 0, half_dim, half_dim, false);
-        updateAuxMatrix(P_aux, strassenMult(a, b, P_aux));
+		Matrix* m3a = extractSubmatrix(A, 0, 0);
+		Matrix* m3b = combineSubmatrices(B, half_dim, 0, half_dim, half_dim, false);
+        updateAuxMatrix(P_aux, strassenMult(m3a, m3b, P_aux));
         modifySubmatrix(C, P_aux, 0, half_dim); // Add tr
         modifySubmatrix(C, P_aux, half_dim, half_dim); // Add br
+        delete m3a;
+        delete m3b;
 
-
-		a = extractSubmatrix(A, half_dim, half_dim);
-		b = combineSubmatrices(B, 0, half_dim, 0, 0, false);
-        updateAuxMatrix(P_aux, strassenMult(a, b, P_aux));
+		Matrix* m4a = extractSubmatrix(A, half_dim, half_dim);
+		Matrix* m4b = combineSubmatrices(B, 0, half_dim, 0, 0, false);
+        updateAuxMatrix(P_aux, strassenMult(m4a, m4b, P_aux));
         modifySubmatrix(C, P_aux, 0, 0); // Add tl
         modifySubmatrix(C, P_aux, half_dim, 0); // Add bl
+        delete m4a;
+        delete m4b;
 
-
-		a = combineSubmatrices(A, 0, 0, half_dim, 0, true);
-		b = extractSubmatrix(B, half_dim, half_dim);
-        updateAuxMatrix(P_aux, strassenMult(a, b, P_aux));
+		Matrix* m5a = combineSubmatrices(A, 0, 0, half_dim, 0, true);
+		Matrix* m5b = extractSubmatrix(B, half_dim, half_dim);
+        updateAuxMatrix(P_aux, strassenMult(m5a, m5b, P_aux));
         modifySubmatrix(C, P_aux, 0, 0, false); // Subtract tl
         modifySubmatrix(C, P_aux, 0, half_dim); // Add tr
+        delete m5a;
+        delete m5b;
 
-
-		a = combineSubmatrices(A, 0, half_dim, 0, 0, false);
-		b = combineSubmatrices(B, 0, 0, half_dim, 0, true);
-        updateAuxMatrix(P_aux, strassenMult(a, b, P_aux));
+		Matrix* m6a = combineSubmatrices(A, 0, half_dim, 0, 0, false);
+		Matrix* m6b = combineSubmatrices(B, 0, 0, half_dim, 0, true);
+        updateAuxMatrix(P_aux, strassenMult(m6a, m6b, P_aux));
         modifySubmatrix(C, P_aux, half_dim, half_dim); // Add br
+        delete m6a;
+        delete m6b;
 
-
-		a = combineSubmatrices(A, half_dim, 0, half_dim, half_dim, false);
-		b = combineSubmatrices(B, 0, half_dim, half_dim, half_dim, true);
-        updateAuxMatrix(P_aux, strassenMult(a, b, P_aux));
+		Matrix* m7a = combineSubmatrices(A, half_dim, 0, half_dim, half_dim, false);
+		Matrix* m7b = combineSubmatrices(B, 0, half_dim, half_dim, half_dim, true);
+        updateAuxMatrix(P_aux, strassenMult(m7a, m7b, P_aux));
         modifySubmatrix(C, P_aux, 0, 0); // Add tl
-
-        delete a;
-        delete b;
+        delete m7a;
+        delete m7b;
 
 		// Remove padding if necessary
 		if (padding) {
