@@ -15,7 +15,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "116"
             endingLineNumber = "116"
-            landmarkName = "trad_mult(Matrix* l_matrix, Matrix* r_matrix)"
+            landmarkName = "tradMult(Matrix* l_matrix, Matrix* r_matrix)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
