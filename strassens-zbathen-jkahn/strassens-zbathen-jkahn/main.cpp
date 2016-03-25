@@ -18,7 +18,7 @@
 
 using namespace std;
 int CUTOFF = 512;
-const bool IN_DEV = true; // Runs a couple simple tests before executing main commands as a sanity check
+const bool IN_DEV = false; // Runs a couple simple tests before executing main commands as a sanity check
 const string OUTPUT_SEPERATOR = "-----------------------------\n\n";
 
 default_random_engine generator;
@@ -208,6 +208,13 @@ void updateAuxMatrix(Matrix* P_aux, Matrix* P_new) {
             P_aux->entries[i][j] = P_new->entries[i][j];
         }
     }
+    
+    /* 
+     Once upon a time, in a land far away, there was a young boy named "P_new."
+     
+     P_new is dead now.
+     */
+    delete P_new;
 }
 
 
@@ -558,8 +565,7 @@ void timingUtility(int lower_bound, int upper_bound, int trials, int interval, b
         Matrix* A = genRandMatrix(cur_matrix_dimension);
         Matrix* B = genRandMatrix(cur_matrix_dimension);
         double construct_time = (clock() - construct_start) / (double)(CLOCKS_PER_SEC);
-        construct_time = 0; // No need for this measurement, but might use it later.
-
+        cout << "Time taken to construct matrices: " << construct_time << "s" << endl;
 
         for (int trial = 0; trial < trials; trial++) {
 
@@ -612,8 +618,6 @@ int main(int argc, char* argv[]) {
     string infile = argv[3];
 
     if (IN_DEV) {
-
-        CUTOFF = 1;
 
         // Simple test cases to make sure nothing has gone totally wrong.
         testingUtility("test33.txt", 3, false, true); // Strassen
