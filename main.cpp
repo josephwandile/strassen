@@ -9,17 +9,10 @@
 #include <random>
 #include <math.h>
 
-
-/*
-
- PROGRAM SETUP
-
- */
-
 using namespace std;
-int CUTOFF = 16;
+int CUTOFF = 115;
 const bool IN_DEV = false; // Runs a couple simple tests before executing main commands as a sanity check
-const string OUTPUT_SEPERATOR = "-----------------------------\n\n";
+const string OUTPUT_SEPERATOR = "----------------------------------------\n\n";
 
 default_random_engine generator;
 uniform_int_distribution<int> distribution(-1,2);
@@ -30,7 +23,6 @@ uniform_int_distribution<int> distribution(-1,2);
  Definition of Matrix as well as utility functions for generating, populating, and printing them.
 
  */
-// Basic Matrix struct
 typedef struct Matrix {
     int dimension;
     vector<vector<int>> entries;
@@ -38,15 +30,16 @@ typedef struct Matrix {
 
 Matrix* instantiateMatrix(int dimension) {
 
-    Matrix* matrix = new Matrix();
+    vector<vector<int>> entries(dimension, vector<int>(dimension));
+
+    Matrix* matrix = (Matrix*) malloc(1000000);
 
     matrix->dimension = dimension;
-
-    vector<vector<int>> entries(dimension, vector<int>(dimension));
     matrix->entries = entries;
 
     return matrix;
 }
+
 
 // Does the actual IO work for populating matrices
 void populateMatrix(Matrix* matrix, string infile, int position, int dimension) {
@@ -76,6 +69,7 @@ void populateMatrix(Matrix* matrix, string infile, int position, int dimension) 
     }
 }
 
+
 // Instantiates and populates a matrix from a specific point in the input file
 Matrix* buildMatrix(string infile, int position, int dimension) {
 
@@ -83,6 +77,7 @@ Matrix* buildMatrix(string infile, int position, int dimension) {
     populateMatrix(matrix, infile, position, dimension);
     return matrix;
 }
+
 
 // Required output format for assignment
 void printMatrix(Matrix* matrix, bool printing_diagonal=true) {
@@ -113,6 +108,14 @@ void printMatrix(Matrix* matrix, bool printing_diagonal=true) {
 }
 
 
+/*
+
+ STANDARD MULTIPLICATION
+
+ Used by Strassen when the dimension is below an experimentally defined
+ cutoff point.
+
+ */
 Matrix* tradMult(Matrix* l_matrix, Matrix* r_matrix) {
 
     if (l_matrix->dimension != r_matrix->dimension) {
@@ -150,13 +153,16 @@ Matrix* tradMult(Matrix* l_matrix, Matrix* r_matrix) {
 	return ans_mat;
 }
 
+
 /*
 
  STRASSEN'S METHOD
 
- */
+ A variety of helper functions as well as the actual recursive implementation.
 
-// Given matrix, distance from left and distance from top of both parts, and dimension of output matrix, returns sum
+ Instantiate new matric (which will be passed as a parameter to Strassen's
+ by adding or subtracting two arbitrary submatrices.
+ */
 Matrix* combineSubmatrices(Matrix* refmat, int j_1, int i_1, int j_2, int i_2, bool add) {
 
     int dimension = refmat->dimension / 2;
@@ -180,6 +186,12 @@ Matrix* combineSubmatrices(Matrix* refmat, int j_1, int i_1, int j_2, int i_2, b
 }
 
 
+/*
+
+ As with combineSubmatrices(), except we instantiate new matrix from
+ single arbitrary submatrix.
+
+ */
 Matrix* extractSubmatrix(Matrix* refmat, int j, int i) {
 
     int dimension = refmat->dimension / 2;
@@ -194,53 +206,7 @@ Matrix* extractSubmatrix(Matrix* refmat, int j, int i) {
 }
 
 
-// Inserts the return value of strassenMult into auxiliary matrix
-void updateAuxMatrix(Matrix* P_aux, Matrix* P_new) {
-
-    /*
-     We only ever need to look at some square matrix in the
-     upper left corner of P_aux, so adjust dimension accordingly
-     */
-    P_aux->dimension = P_new->dimension;
-
-    for (int i = 0; i < P_new->dimension; i++) {
-        for (int j = 0; j < P_new->dimension; j++) {
-            P_aux->entries[i][j] = P_new->entries[i][j];
-        }
-    }
-
-    delete P_new;
-}
-
-
-/*
- Adds or subtracts relevant submatrix of P to the submatrix of C defined
- by i, j and the dimension of C
- */
-void modifySubmatrix(Matrix* C, Matrix* P, int i, int j, bool adding=true) {
-
-    int row, col;
-
-    // cout << "Adding? " <<  adding << " dimension " << P->dimension << endl;
-    if (adding) {
-        for (row = 0; row < P->dimension; row++) {
-            for (col = 0; col < P->dimension; col++) {
-                C->entries[i + row][j + col] += P->entries[row][col];
-            }
-        }
-
-    } else {
-
-        for (row = 0; row < P->dimension; row++) {
-            for (col = 0; col < P->dimension; col++) {
-                C->entries[i + row][j + col] -= P->entries[row][col];
-            }
-        }
-    }
-}
-
-
-// add a row and a col of zeroes to matrix
+// Add a row and a col of zeroes to matrix
 void pad(Matrix* mat) {
 
     int dimension = mat->dimension;
@@ -274,7 +240,7 @@ void unpad(Matrix* matrix) {
 }
 
 
-Matrix* strassenMult(Matrix* A, Matrix* B, Matrix* P_aux) {
+Matrix* strassenMult(Matrix* A, Matrix* B) {
 
     if (A->dimension != B->dimension) {
         throw invalid_argument("strassenMult expects square matrices.");
@@ -285,9 +251,6 @@ Matrix* strassenMult(Matrix* A, Matrix* B, Matrix* P_aux) {
 	if (dimension <= CUTOFF){
 		return tradMult(A, B); // TODO what is the implication of strassen referencing P with the cutoff point and normal mult?
 	} else {
-
-        // TODO make even more modular
-        // TODO need to pass in references to initial matrices for inline strass
 
 		bool padding = false;
 
@@ -304,54 +267,99 @@ Matrix* strassenMult(Matrix* A, Matrix* B, Matrix* P_aux) {
 
         int half_dim = dimension / 2;
 
-        // TODO
-		Matrix* a = combineSubmatrices(A, 0, 0, half_dim, half_dim, true);
-		Matrix* b = combineSubmatrices(B, 0, 0, half_dim, half_dim, true);
-        updateAuxMatrix(P_aux, strassenMult(a, b, P_aux));
-        modifySubmatrix(C, P_aux, 0, 0); // Add tl
-        modifySubmatrix(C, P_aux, half_dim, half_dim); // Add br
+        /*
 
-		a = combineSubmatrices(A, 0, half_dim, half_dim, half_dim, true);
-		b = extractSubmatrix(B, 0, 0);
-        updateAuxMatrix(P_aux, strassenMult(a, b, P_aux));
-        modifySubmatrix(C, P_aux, half_dim, 0); // Add bl
-        modifySubmatrix(C, P_aux, half_dim, half_dim, false); // Subtract br
+         Using an auxiliary matrix to store the currently needed product increases space efficiency significantly,
+         but (at least in our implementation) makes it harder to minimize the number of algebraic operations.
 
+         There's a clear trade-off between time and space here (and in some sense simplicity, since making time and space usage
+         both optimal requires difficult-to-reason-about code with the majority of operations happening in place. (Though this can
+         be made less burdensome for a 'client' if the proper abstractions are used.)
 
-		a = extractSubmatrix(A, 0, 0);
-		b = combineSubmatrices(B, half_dim, 0, half_dim, half_dim, false);
-        updateAuxMatrix(P_aux, strassenMult(a, b, P_aux));
-        modifySubmatrix(C, P_aux, 0, half_dim); // Add tr
-        modifySubmatrix(C, P_aux, half_dim, half_dim); // Add br
+         */
+		Matrix* m1a = combineSubmatrices(A, 0, 0, half_dim, half_dim, true);
+		Matrix* m1b = combineSubmatrices(B, 0, 0, half_dim, half_dim, true);
+        Matrix* m1 = strassenMult(m1a, m1b);
+        free( m1a);
+        free( m1b);
 
+		Matrix* m2a = combineSubmatrices(A, 0, half_dim, half_dim, half_dim, true);
+		Matrix* m2b = extractSubmatrix(B, 0, 0);
+        Matrix* m2 = strassenMult(m2a, m2b);
+        free( m2a);
+        free( m2b);
 
-		a = extractSubmatrix(A, half_dim, half_dim);
-		b = combineSubmatrices(B, 0, half_dim, 0, 0, false);
-        updateAuxMatrix(P_aux, strassenMult(a, b, P_aux));
-        modifySubmatrix(C, P_aux, 0, 0); // Add tl
-        modifySubmatrix(C, P_aux, half_dim, 0); // Add bl
+		Matrix* m3a = extractSubmatrix(A, 0, 0);
+		Matrix* m3b = combineSubmatrices(B, half_dim, 0, half_dim, half_dim, false);
+        Matrix* m3 = strassenMult(m3a, m3b);
+        free( m3a);
+        free( m3b);
 
+        Matrix* m6a = combineSubmatrices(A, 0, half_dim, 0, 0, false);
+        Matrix* m6b = combineSubmatrices(B, 0, 0, half_dim, 0, true);
+        Matrix* m6 = strassenMult(m6a, m6b);
+        free( m6a);
+        free( m6b);
 
-		a = combineSubmatrices(A, 0, 0, half_dim, 0, true);
-		b = extractSubmatrix(B, half_dim, half_dim);
-        updateAuxMatrix(P_aux, strassenMult(a, b, P_aux));
-        modifySubmatrix(C, P_aux, 0, 0, false); // Subtract tl
-        modifySubmatrix(C, P_aux, 0, half_dim); // Add tr
+        // c22 = m1 - m2 + m3 + m6
+        for (int row = 0; row < half_dim; row++) {
+            for (int col = 0; col < half_dim; col++) {
+                C->entries[row + half_dim][col + half_dim] =
+                    m1->entries[row][col] - m2->entries[row][col]
+                    + m3->entries[row][col] + m6->entries[row][col];
+            }
+        }
 
+        free(m6);
 
-		a = combineSubmatrices(A, 0, half_dim, 0, 0, false);
-		b = combineSubmatrices(B, 0, 0, half_dim, 0, true);
-        updateAuxMatrix(P_aux, strassenMult(a, b, P_aux));
-        modifySubmatrix(C, P_aux, half_dim, half_dim); // Add br
+		Matrix* m4a = extractSubmatrix(A, half_dim, half_dim);
+		Matrix* m4b = combineSubmatrices(B, 0, half_dim, 0, 0, false);
+        Matrix* m4 = strassenMult(m4a, m4b);
+        free( m4a);
+        free( m4b);
 
+        // c21 = m2 + m4
+        for (int row = 0; row < half_dim; row++) {
+            for (int col = 0; col < half_dim; col++) {
+                C->entries[row + half_dim][col] = m2->entries[row][col] + m4->entries[row][col];
+            }
+        }
 
-		a = combineSubmatrices(A, half_dim, 0, half_dim, half_dim, false);
-		b = combineSubmatrices(B, 0, half_dim, half_dim, half_dim, true);
-        updateAuxMatrix(P_aux, strassenMult(a, b, P_aux));
-        modifySubmatrix(C, P_aux, 0, 0); // Add tl
+        free(m2);
 
-        delete a;
-        delete b;
+		Matrix* m5a = combineSubmatrices(A, 0, 0, half_dim, 0, true);
+		Matrix* m5b = extractSubmatrix(B, half_dim, half_dim);
+        Matrix* m5 = strassenMult(m5a, m5b);
+        free( m5a);
+        free( m5b);
+
+        // c12 = m3 + m5
+        for (int row = 0; row < half_dim; row++) {
+            for (int col = 0; col < half_dim; col++) {
+                C->entries[row][col + half_dim] = m3->entries[row][col] + m5->entries[row][col];
+            }
+        }
+
+        free(m3);
+
+		Matrix* m7a = combineSubmatrices(A, half_dim, 0, half_dim, half_dim, false);
+		Matrix* m7b = combineSubmatrices(B, 0, half_dim, half_dim, half_dim, true);
+        Matrix* m7 = strassenMult(m7a, m7b);
+        free( m7a);
+        free( m7b);
+
+        // c11 = m1 + m4 - m5 + m7
+        for (int row = 0; row < half_dim; row++) {
+            for (int col = 0; col < half_dim; col++) {
+				C->entries[row][col] = m1->entries[row][col] + m4->entries[row][col]
+					- m5->entries[row][col] + m7->entries[row][col];
+			}
+		}
+
+        free(m1);
+        free(m4);
+        free(m5);
+        free(m7);
 
 		// Remove padding if necessary
 		if (padding) {
@@ -408,7 +416,6 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
 
         Matrix* A;
         Matrix* B;
-        Matrix* P_aux;
 
         cout << "Testing randomly generated matrices of size: " << dimension << endl;
 
@@ -422,14 +429,12 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
          */
         A = genRandMatrix(dimension);
         B = genRandMatrix(dimension);
-        P_aux = instantiateMatrix(dimension);
 
         Matrix* C_trad = tradMult(A, B);
-        Matrix* C_strass = strassenMult(A, B, P_aux);
+        Matrix* C_strass = strassenMult(A, B);
 
-        delete A;
-        delete B;
-        delete P_aux;
+        free( A);
+        free( B);
 
         /*
          Can't "know" the correct result a priori, so we assume that if each type of
@@ -441,34 +446,32 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
         }
 
         assert(matricesAreEqual(C_strass, C_trad));
+        cout << "Assertion True" << endl;
 
-        delete C_strass;
-        delete C_trad;
+        free( C_strass);
+        free( C_trad);
 
     } else {
 
         Matrix* A;
         Matrix* B;
-        Matrix* P_aux;
 
         A = buildMatrix(infile, 0, dimension);
         B = buildMatrix(infile, dimension*dimension, dimension);
-        P_aux = instantiateMatrix(dimension);
 
         Matrix* C;
 
         // Deterministic test so we can test Strassen and Trad independently of each other
         if (using_strassen) {
             cout << "Testing Strassen" << endl;
-            C = strassenMult(A,B, P_aux);
+            C = strassenMult(A,B);
         } else {
             cout << "Testing Traditional Mult" << endl;
             C = tradMult(A,B);
         }
 
-        delete A;
-        delete B;
-        delete P_aux;
+        free( A);
+        free( B);
 
         // Left matrix built from test files
         Matrix* correct_C = buildMatrix(infile, dimension*dimension*2, dimension);
@@ -479,9 +482,11 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
         }
 
         assert(matricesAreEqual(correct_C, C));
+        cout << "Assertion True" << endl;
 
-        delete C;
-        delete correct_C;
+
+        free( C);
+        free( correct_C);
 
     }
 }
@@ -492,6 +497,8 @@ void testingUtility(string infile, int dimension, bool use_random_matrices=true,
 
  timeMatrixFromFile exists in case TFs/we want to time the execution of Strassen's on a known matrix pair
 
+ findCrossover is a utility function to find the optimal cutoff point for matrix multiplication of arbitrary dimension
+
  timingUtility generates time data over a range of dimensions for either Strassen's or Traditional Multiplication
 
  */
@@ -500,75 +507,80 @@ void timeMatrixFromFile(string infile, int dimension) {
     clock_t construct_start = clock();
     Matrix* A = buildMatrix(infile, 0, dimension);
     Matrix* B = buildMatrix(infile, dimension*dimension, dimension);
-    Matrix* P_aux = instantiateMatrix(dimension);
     double construct_total = (clock() - construct_start) / (double)(CLOCKS_PER_SEC);
 
     // Assuming we'll only want to time Strassen's method direcly from input file
     cout << "Timing Strassen from input file." << endl << OUTPUT_SEPERATOR;
     clock_t mult_start = clock();
-    Matrix* C = strassenMult(A,B, P_aux);
+    Matrix* C = strassenMult(A,B);
     double mult_total = (clock() - mult_start) / (double)(CLOCKS_PER_SEC);
 
-    delete A;
-    delete B;
-    delete P_aux;
-    delete C;
+    free(A);
+    free(B);
+    free(C);
 
     cout << "Construction for matrix of size " << dimension << " took " << construct_total << "s" << endl;
     cout << "Multiplication took " << mult_total << "s" << endl;
 }
 
-void timeStrassen() {
 
-    int test_dimension_vals[] = {2, 5, 10, 15, 32, 64, 99, 110, 150, 200, 250, 348, 513, 1022, 1025};
-    std::vector<int> test_dimensions (test_dimension_vals, test_dimension_vals + sizeof(test_dimension_vals) / sizeof(int) );
+int findCrossover(int dimension, int trials) {
 
-    for (int i = 0; i< test_dimensions.size(); i++) {
+    cout << "Finding optimal crossover point for matrix of size " << dimension << endl << OUTPUT_SEPERATOR;
 
-        int cur_best_cut_off = 1;
-        int cur_dim = test_dimensions[i];
+    string output_file_name = "strassen_crossover_" + to_string(dimension) + "_" + to_string(trials) + ".txt";
+    ofstream output_file;
+    output_file.open(output_file_name);
 
-        Matrix* A = genRandMatrix(cur_dim);
-        Matrix* B = genRandMatrix(cur_dim);
+    double min_time = 10000;
+    int min_cutoff = 10000;
 
-        double total_time_of_mins = 0;
-        for (int trial = 0; trial < 5; trial++) {
+    int increasing_function_counter = 0;
 
-            double cur_record_time = 10000; // Guaranteed slower than any matrix multiplication of reasonable dimension.
-            int less_optimal_counter = 0;
+    for (int cutoff = 16; cutoff < dimension; cutoff+=10) { // TODO Try to get ballpark
 
-            for (int cut_off = cur_best_cut_off; cut_off < cur_dim; cut_off++) {
+        CUTOFF = cutoff; // Mutate global variable
 
-                if (less_optimal_counter > 10) {
-                    break; // Probably past the local min
-                }
+        double total_time = 0;
 
-                clock_t start_mult = clock();
-                CUTOFF = cut_off;
-                Matrix* P_aux = instantiateMatrix(cur_dim);
-                Matrix* C = strassenMult(A, B, P_aux);
-                delete P_aux;
-                delete C;
-                double mult_time = (clock() - start_mult) / (double)(CLOCKS_PER_SEC);
+        for (int trial = 0; trial < trials; trial++) {
 
-                if (mult_time < cur_record_time) {
-                    cur_record_time = mult_time;
-                    cur_best_cut_off = cut_off; // We just want the min here-- not the average
-                    less_optimal_counter = 0; // Accounts for variance
-                } else {
-                    less_optimal_counter++; // No need to keep going if passed local minimum
-                }
-            }
-            total_time_of_mins += cur_record_time;
+            Matrix* A = genRandMatrix(dimension);
+            Matrix* B = genRandMatrix(dimension);
+
+            clock_t start_mult = clock();
+            Matrix* C = strassenMult(A,B);
+            double mult_time = (clock() - start_mult) / (double)(CLOCKS_PER_SEC);
+
+            free(A);
+            free(B);
+            free(C);
+
+            total_time += mult_time;
         }
 
-        double avg_time_of_mins = total_time_of_mins / 5;
-        delete A;
-        delete B;
+        double avg_time = total_time / trials;
+        output_file << CUTOFF << "\t" << avg_time << endl;
 
-        // TODO Output to file
-        cout << "For dimension of " << cur_dim << " the best cut off from all trials was " << cur_best_cut_off << " and the average mimal time was " << avg_time_of_mins << endl << OUTPUT_SEPERATOR;
+        if (avg_time < min_time) {
+
+            cout << "Found better cutoff of " << CUTOFF << endl;
+
+            min_time = avg_time;
+            min_cutoff = cutoff;
+            increasing_function_counter = 0;
+
+        } else {
+
+            increasing_function_counter++;
+        }
     }
+
+    cout << "Optimal (lowest) cutoff of " << min_cutoff << " results in an average running time of " << min_time << endl;
+
+    output_file.close();
+
+    return min_cutoff;
 }
 
 
@@ -578,10 +590,10 @@ void timingUtility(int lower_bound, int upper_bound, int trials, int interval, b
     string output_file_name;
 
     if (using_strassen) {
-        cout << "Timing Strassen" << endl;
+        cout << "Timing Strassen" << endl << OUTPUT_SEPERATOR;
         output_file_name = "strassen_";
     } else {
-        cout << "Timing Traditional" << endl;
+        cout << "Timing Traditional" << endl << OUTPUT_SEPERATOR;
         output_file_name = "traditional_";
     }
 
@@ -593,6 +605,8 @@ void timingUtility(int lower_bound, int upper_bound, int trials, int interval, b
     cur_matrix_dimension = lower_bound;
     while(cur_matrix_dimension <= upper_bound) {
 
+//        CUTOFF = ceil(cur_matrix_dimension / 2);
+        
         // For matrix of cur_matrix_dimension = n
         double total_mult_time = 0;
         double avg_mult_time = 0;
@@ -603,17 +617,18 @@ void timingUtility(int lower_bound, int upper_bound, int trials, int interval, b
         Matrix* A = genRandMatrix(cur_matrix_dimension);
         Matrix* B = genRandMatrix(cur_matrix_dimension);
         double construct_time = (clock() - construct_start) / (double)(CLOCKS_PER_SEC);
-        construct_time = 0; // No need for this measurement, but might use it later.
+        cout << "Time taken to construct matrices: " << construct_time << "s" << endl;
 
-
+        if (using_strassen) {
+            cout << "CUTOFF of " << CUTOFF << endl;
+        }
+        
         for (int trial = 0; trial < trials; trial++) {
 
             clock_t mult_start = clock();
             Matrix* C;
             if (using_strassen) {
-                Matrix* P_aux = instantiateMatrix(cur_matrix_dimension);
-                C = strassenMult(A, B, P_aux);
-                delete P_aux;
+                C = strassenMult(A, B);
             } else {
                 C = tradMult(A, B);
             }
@@ -621,18 +636,18 @@ void timingUtility(int lower_bound, int upper_bound, int trials, int interval, b
             double mult_total = (clock() - mult_start) / (double)(CLOCKS_PER_SEC);
             total_mult_time += mult_total;
 
-            delete C;
+            free( C);
         }
 
         avg_mult_time = total_mult_time / trials;
 
-        cout << "Average Time for Mult:    " << avg_mult_time << endl;
-        output_file << cur_matrix_dimension << "\t" << avg_mult_time << endl;
+        cout << "Average Time for Mult over " << trials << " trial/s: " << avg_mult_time << endl;
+//        output_file << cur_matrix_dimension << "\t" << avg_mult_time << endl;
 
         cur_matrix_dimension += interval;
 
-        delete A;
-        delete B;
+        free(A);
+        free(B);
     }
 
     output_file.close();
@@ -654,12 +669,6 @@ int main(int argc, char* argv[]) {
 
     int flag = stoi(argv[1]);
     int dimension = stoi(argv[2]);
-
-    if (dimension < 1) {
-        cout << "Please stop trying to break the code.";
-        return -1;
-    }
-
     string infile = argv[3];
 
     if (IN_DEV) {
@@ -680,40 +689,68 @@ int main(int argc, char* argv[]) {
             // buildMatrix(filename, read_from_position, buffer_length)
             Matrix* A = buildMatrix(infile, 0, dimension);
             Matrix* B = buildMatrix(infile, dimension*dimension, dimension);
-            Matrix* P_aux = instantiateMatrix(dimension);
-        	Matrix* C = strassenMult(A, B, P_aux);
+            
+            // Different CUTOFF for even vs. Odd
+            if ((dimension & 1) != 0) {
+                CUTOFF = 215; // Odd Cutoff
+            } else {
+                CUTOFF = 115; // Even Cutoff
+            }
+
+            
+        	Matrix* C = strassenMult(A, B);
             printMatrix(C);
-            delete A;
-            delete B;
-            delete P_aux;
-            delete C;
+            free(A);
+            free(B);
+            free(C);
         }
         return 0;
     }
 
-    /*
-     Flags one and 2 execute functions with params:
+	if (flag == 1) { // Testing on randomly generated matrices of arbitrary size
 
-       lowest_n, highest_n, num_trials, interval, using_strassan=true
-    */
-    if (flag == 1) { // Generate custom time data for Strassen
+        testingUtility(infile, dimension, true , true, true);
+        return 0;
+    }
+
+    if (flag == 2) { // Run deterministic tests on Strassen and Trad
+
+        // Normal
+        testingUtility(infile, dimension, false, true, true);
+        testingUtility(infile, dimension, false, false, true);
+
+        return 0;
+    }
+
+    // lower bound - upper bound - trials - intervals - bool using_strassen
+    if (flag == 3) { // Generate time data for Strassen
 
         // Strassen
         timingUtility(dimension, dimension, 1, 1, true);
-        return 0;
     }
 
-    if (flag == 2) { // Generate custom time data for Trad
+    if (flag == 4) { // Generate time data for Trad
 
         // Traditional
-        timingUtility(2, dimension, 5, 50, false);
-        return 0;
+        timingUtility(1000, dimension, 3, 100, false);
     }
 
-    if (flag == 3) {
+    if (flag == 5) { // Finding the crossover!
 
-        // Hardcoded data generation for Strassan cutoff
-        timeStrassen();
-        return 0;
+        string output_file_name = "strassen_crossover_even_dims_v_cutoff.txt";
+        ofstream output_file;
+        output_file.open(output_file_name);
+        
+        string next_output_file_name = "strassen_crossover_odd_dims_v_cutoff.txt";
+        ofstream next_output_file;
+        next_output_file.open(next_output_file_name);
+
+        for (int i = 16; i <= 512; i*=2) {
+            output_file << i << "\t" << findCrossover(i, 3) << endl;
+            next_output_file << i+1 << "\t" << findCrossover(i+1, 3) << endl;
+        }
+
+        output_file.close();
+        next_output_file.close();
     }
 }
